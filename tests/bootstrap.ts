@@ -1,12 +1,12 @@
-import { assert } from '@japa/assert'
-import app from '@adonisjs/core/services/app'
-import type { Config } from '@japa/runner/types'
-import { pluginAdonisJS } from '@japa/plugin-adonisjs'
-import { dbAssertions } from '@adonisjs/lucid/plugins/db'
-import testUtils from '@adonisjs/core/services/test_utils'
-import { browserClient } from '@japa/browser-client'
 import { authBrowserClient } from '@adonisjs/auth/plugins/browser_client'
+import app from '@adonisjs/core/services/app'
+import testUtils from '@adonisjs/core/services/test_utils'
+import { dbAssertions } from '@adonisjs/lucid/plugins/db'
 import { sessionBrowserClient } from '@adonisjs/session/plugins/browser_client'
+import { assert } from '@japa/assert'
+import { browserClient } from '@japa/browser-client'
+import { pluginAdonisJS } from '@japa/plugin-adonisjs'
+import type { Config } from '@japa/runner/types'
 
 /**
  * This file is imported by the "bin/test.ts" entrypoint file

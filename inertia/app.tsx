@@ -1,12 +1,12 @@
 import './css/app.css'
-import { type ReactElement } from 'react'
-import { client } from './client'
-import Layout from '~/layouts/default'
-import { type Data } from '@generated/data'
-import { createRoot } from 'react-dom/client'
-import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react'
-import { TuyauProvider } from '@adonisjs/inertia/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
+import { TuyauProvider } from '@adonisjs/inertia/react'
+import type { Data } from '@generated/data'
+import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react'
+import type { ReactElement } from 'react'
+import { createRoot } from 'react-dom/client'
+import Layout from '~/layouts/default'
+import { client } from './client'
 
 const appName = import.meta.env.VITE_APP_NAME || 'AdonisJS'
 
@@ -16,14 +16,14 @@ createInertiaApp({
     return resolvePageComponent<ResolvedComponent>(
       `./pages/${name}.tsx`,
       import.meta.glob<ResolvedComponent>('./pages/**/*.tsx'),
-      (page: ReactElement<Data.SharedProps>) => <Layout children={page} />
+      (page: ReactElement<Data.SharedProps>) => <Layout>{page}</Layout>,
     )
   },
   setup({ el, App, props }) {
     createRoot(el).render(
       <TuyauProvider client={client}>
         <App {...props} />
-      </TuyauProvider>
+      </TuyauProvider>,
     )
   },
   progress: {
