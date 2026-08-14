@@ -1,6 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { BaseSerializer } from '@adonisjs/core/transformers'
-import { type SimplePaginatorMetaKeys } from '@adonisjs/lucid/types/querybuilder'
+import type { SimplePaginatorMetaKeys } from '@adonisjs/lucid/types/querybuilder'
 
 /**
  * Custom serializer for API responses that ensures consistent JSON structure
@@ -26,7 +26,7 @@ class ApiSerializer extends BaseSerializer<{
   definePaginationMetaData(metaData: unknown): SimplePaginatorMetaKeys {
     if (!this.isLucidPaginatorMetaData(metaData)) {
       throw new Error(
-        'Invalid pagination metadata. Expected metadata to contain Lucid pagination keys'
+        'Invalid pagination metadata. Expected metadata to contain Lucid pagination keys',
       )
     }
     return metaData
@@ -38,7 +38,10 @@ class ApiSerializer extends BaseSerializer<{
  */
 const serializer = new ApiSerializer()
 const serialize = Object.assign(
-  function (this: HttpContext, ...[data, resolver]: Parameters<ApiSerializer['serialize']>) {
+  function (
+    this: HttpContext,
+    ...[data, resolver]: Parameters<ApiSerializer['serialize']>
+  ) {
     return serializer.serialize(data, resolver ?? this.containerResolver)
   },
   {
@@ -46,10 +49,15 @@ const serialize = Object.assign(
       this: HttpContext,
       ...[data, resolver]: Parameters<ApiSerializer['serializeWithoutWrapping']>
     ) {
-      return serializer.serializeWithoutWrapping(data, resolver ?? this.containerResolver)
+      return serializer.serializeWithoutWrapping(
+        data,
+        resolver ?? this.containerResolver,
+      )
     },
-  }
-) as ApiSerializer['serialize'] & { withoutWrapping: ApiSerializer['serializeWithoutWrapping'] }
+  },
+) as ApiSerializer['serialize'] & {
+  withoutWrapping: ApiSerializer['serializeWithoutWrapping']
+}
 
 /**
  * Adds the serialize method to all HttpContext instances.

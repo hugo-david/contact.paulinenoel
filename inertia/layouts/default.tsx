@@ -1,37 +1,38 @@
-import { type Data } from "@generated/data";
-import { toast, Toaster } from "sonner";
-import { usePage } from "@inertiajs/react";
-import { type ReactElement, useEffect } from "react";
-import { Form, Link } from "@adonisjs/inertia/react";
+import type { Data } from '@generated/data'
+import { usePage } from '@inertiajs/react'
+import type { ReactElement } from 'react'
+import { useEffect } from 'react'
+import { Toaster, toast } from 'sonner'
 
 export default function Layout({
-	children,
+  children,
 }: {
-	children: ReactElement<Data.SharedProps>;
+  children: ReactElement<Data.SharedProps>
 }) {
-	const { url, flash } = usePage();
-	useEffect(() => {
-		toast.dismiss();
-	}, [url]);
+  const { url, flash } = usePage()
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dismiss toasts after navigation.
+  useEffect(() => {
+    toast.dismiss()
+  }, [url])
 
-	useEffect(() => {
-		if (flash.error) {
-			toast.error(flash.error);
-		}
-		if (flash.success) {
-			toast.success(flash.success);
-		}
-	});
+  useEffect(() => {
+    if (flash.error) {
+      toast.error(flash.error)
+    }
+    if (flash.success) {
+      toast.success(flash.success)
+    }
+  })
 
-	return (
-		<>
-			<header>
-				<div>
-					<div></div>
-				</div>
-			</header>
-			<main>{children}</main>
-			<Toaster position="top-center" richColors />
-		</>
-	);
+  return (
+    <>
+      <header>
+        <div>
+          <div></div>
+        </div>
+      </header>
+      <main>{children}</main>
+      <Toaster position="top-center" richColors />
+    </>
+  )
 }

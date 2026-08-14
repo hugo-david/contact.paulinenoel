@@ -1,5 +1,5 @@
-import env from '#start/env'
 import { defineConfig, drivers } from '@adonisjs/core/encryption'
+import env from '#start/env'
 
 const encryptionConfig = defineConfig({
   /**
@@ -30,5 +30,6 @@ export default encryptionConfig
  * in your application.
  */
 declare module '@adonisjs/core/types' {
-  export interface EncryptorsList extends InferEncryptors<typeof encryptionConfig> {}
+  export interface EncryptorsList
+    extends InferEncryptors<typeof encryptionConfig> {}
 }
