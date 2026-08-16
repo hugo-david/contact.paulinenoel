@@ -1,17 +1,109 @@
-:root {
-  --gray-1: oklch(98.5% 0 0);
-  --gray-2: oklch(97% 0 0);
-  --gray-3: oklch(92.2% 0 0);
-  --gray-4: oklch(87% 0 0);
-  --gray-6: oklch(55.6% 0 0);
-  --gray-7: oklch(43.9% 0 0);
-  --gray-8: oklch(37.1% 0 0);
-  --gray-10: oklch(26.9% 0 0);
-  --gray-12: oklch(14.5% 0 0);
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/Inter-Regular.ttf") format("truetype");
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/Inter-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Radio Canada Big";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/RadioCanadaBig-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Radio Canada Big";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/RadioCanadaBig-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Radio Canada Big";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/RadioCanadaBig-Bold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/SchibstedGrotesk-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/SchibstedGrotesk-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Schibsted Grotesk";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../assets/fonts/SchibstedGrotesk-Bold.ttf") format("truetype");
+}
+
+@theme {
+  --color-orange-70s: #ec651d;
+  --color-yellow-butter: #fce093;
+  --color-terracotta: #881c12;
+  --color-sage-blue: #b4d3d5;
+  --color-ink: #1f2a28;
+  --color-muted: #5f6867;
+  --color-muted-light: #a0a3a3;
+  --color-border: #c7c7c7;
+  --color-pricing: #f0606f;
+  --color-white: #fff;
+  --color-danger: #a9271c;
+  --color-primary: #ec651d;
+  --color-primary-foreground: #1f2a28;
+  --color-secondary: #881c12;
+  --color-surface: #fff;
+  --color-surface-subtle: #f8f6f1;
+  --color-surface-secondary: #fce093;
+  --color-surface-accent: #b4d3d5;
+
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-heading: "Radio Canada Big", system-ui, sans-serif;
+  --font-meta: "Schibsted Grotesk", system-ui, sans-serif;
+  --shadow-card: 0 1px 1px rgb(31 42 40 / 6%), 0 8px 24px rgb(31 42 40 / 7%);
+  --shadow-card-selected:
+    0 1px 1px rgb(31 42 40 / 8%), 0 12px 32px rgb(236 101 29 / 18%);
+  --radius-control: 0.75rem;
+  --radius-card: 1.125rem;
+  --container-content: 67.5rem;
+  --container-narrow: 42rem;
+  --container-wide: 80rem;
+}
+
+@layer base {
+  html {
+    @apply font-body leading-normal text-ink;
+    text-rendering: optimizelegibility;
+  }
+
+  body {
+    @apply min-w-80 bg-surface;
+  }
 }
