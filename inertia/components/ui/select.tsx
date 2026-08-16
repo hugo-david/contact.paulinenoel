@@ -61,8 +61,9 @@ export function Select({
         </BaseSelect.Label>
         <BaseSelect.Trigger
           className={cn(
-            'flex min-h-11 w-full items-center justify-between gap-3 rounded-control border border-border bg-surface px-3.5 py-2.5 text-left text-base leading-[1.4] text-ink disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted',
-            'data-invalid:border-danger focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-secondary',
+            'flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-control border border-border bg-surface px-3.5 py-2.5 text-left text-base leading-[1.4] text-ink disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:text-muted',
+            'data-invalid:border-danger focus-visible:border-focus-ring focus-visible:outline-none',
+            'motion-safe:transition-[background-color,border-color,color,outline-color] motion-safe:duration-feedback motion-safe:ease-snappy [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink',
             className,
           )}
         >
@@ -70,7 +71,7 @@ export function Select({
             className="data-placeholder:text-muted-light"
             placeholder={placeholder}
           />
-          <BaseSelect.Icon className="shrink-0 text-secondary">
+          <BaseSelect.Icon className="shrink-0 text-secondary data-popup-open:rotate-180 motion-safe:transition-transform motion-safe:duration-feedback motion-safe:ease-snappy">
             <svg
               aria-hidden="true"
               fill="none"
@@ -89,12 +90,23 @@ export function Select({
           </BaseSelect.Icon>
         </BaseSelect.Trigger>
         <BaseSelect.Portal>
-          <BaseSelect.Positioner className="z-50" sideOffset={6}>
-            <BaseSelect.Popup className="min-w-(--anchor-width) rounded-control border border-border bg-surface p-1 text-ink shadow-card outline-none motion-safe:transition-[opacity,transform] motion-safe:duration-150 data-ending-style:translate-y-0.5 data-ending-style:opacity-0 data-starting-style:-translate-y-0.5 data-starting-style:opacity-0">
+          <BaseSelect.Positioner
+            align="start"
+            alignItemWithTrigger={false}
+            className="z-50"
+            collisionAvoidance={{
+              align: 'shift',
+              fallbackAxisSide: 'none',
+              side: 'shift',
+            }}
+            side="bottom"
+            sideOffset={6}
+          >
+            <BaseSelect.Popup className="min-w-(--anchor-width) origin-(--transform-origin) rounded-control border border-border bg-surface p-1 text-ink shadow-card outline-none transition-[opacity] duration-popover ease-snappy motion-safe:transition-[opacity,transform] data-ending-style:opacity-0 data-starting-style:opacity-0 motion-safe:data-ending-style:scale-[0.95] motion-safe:data-starting-style:scale-[0.95]">
               <BaseSelect.List className="max-h-64 overflow-y-auto py-1">
                 {options.map((option) => (
                   <BaseSelect.Item
-                    className="flex cursor-default items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm leading-[1.4] outline-none select-none data-highlighted:bg-secondary/10 data-highlighted:text-secondary data-disabled:cursor-not-allowed data-disabled:opacity-50"
+                    className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm leading-[1.4] outline-none select-none data-highlighted:bg-secondary/10 data-highlighted:text-secondary data-disabled:cursor-not-allowed data-disabled:opacity-50"
                     disabled={option.disabled}
                     key={option.value}
                     value={option.value}

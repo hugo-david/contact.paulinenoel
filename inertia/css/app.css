@@ -65,36 +65,43 @@
 }
 
 @theme {
-  --color-orange-70s: #ec651d;
-  --color-yellow-butter: #fce093;
-  --color-terracotta: #881c12;
-  --color-sage-blue: #b4d3d5;
+  /* Palette source: Figma's selection colors. */
   --color-ink: #1f2a28;
-  --color-muted: #5f6867;
-  --color-muted-light: #a0a3a3;
+  --color-muted: #1e2324;
+  --color-muted-light: #c7c7c7;
   --color-border: #c7c7c7;
-  --color-pricing: #f0606f;
+  --color-border-subtle: #c7c7c7;
+  --color-border-strong: #1e2324;
+  --color-border-accent: #ff6373;
+  --color-accent: #ff5b6c;
+  --color-accent-light: #ff6373;
+  --color-pricing: #ff5b6c;
   --color-white: #fff;
-  --color-danger: #a9271c;
-  --color-primary: #ec651d;
-  --color-primary-foreground: #1f2a28;
-  --color-secondary: #881c12;
+  --color-danger: #ff5b6c;
+  --color-focus-ring: #f0606f;
+  --color-primary: #1f2a28;
+  --color-primary-hover: #484e4d;
+  --color-primary-foreground: #fff;
+  --color-secondary: #ff5b6c;
   --color-surface: #fff;
-  --color-surface-subtle: #f8f6f1;
-  --color-surface-secondary: #fce093;
-  --color-surface-accent: #b4d3d5;
+  --color-surface-subtle: #fff;
+  --color-surface-secondary: #fff;
+  --color-surface-accent: #ff6373;
 
   --font-body: "Inter", system-ui, sans-serif;
   --font-heading: "Radio Canada Big", system-ui, sans-serif;
   --font-meta: "Schibsted Grotesk", system-ui, sans-serif;
   --shadow-card: 0 1px 1px rgb(31 42 40 / 6%), 0 8px 24px rgb(31 42 40 / 7%);
   --shadow-card-selected:
-    0 1px 1px rgb(31 42 40 / 8%), 0 12px 32px rgb(236 101 29 / 18%);
+    0 1px 1px rgb(31 42 40 / 8%), 0 12px 32px rgb(255 91 108 / 18%);
   --radius-control: 0.75rem;
   --radius-card: 1.125rem;
   --container-content: 67.5rem;
   --container-narrow: 42rem;
   --container-wide: 80rem;
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --duration-feedback: 150ms;
+  --duration-popover: 200ms;
 }
 
 @layer base {
