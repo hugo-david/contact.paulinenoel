@@ -5,7 +5,8 @@ import { cn } from '~/utils/cn'
 const variants = {
   primary:
     'bg-primary text-primary-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:bg-primary-hover',
-  quiet: 'bg-transparent text-secondary underline decoration-secondary/60 underline-offset-3',
+  quiet:
+    'bg-transparent text-secondary underline decoration-secondary/60 underline-offset-3',
   secondary:
     'border-border bg-transparent text-ink opacity-50 focus-visible:opacity-100 active:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:hover:opacity-100',
 } as const

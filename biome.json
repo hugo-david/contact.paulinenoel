@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/.adonisjs"],
+    "includes": ["**", "!!**/.adonisjs", "!!docs/reference"],
     "ignoreUnknown": false
   },
   "formatter": {
