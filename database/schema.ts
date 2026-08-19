@@ -8,7 +8,29 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import type { DateTime } from 'luxon'
 
 export class QuoteRequestSchema extends BaseModel {
-  static $columns = ['companyName', 'createdAt', 'currency', 'desiredTimeline', 'email', 'estimateHighCents', 'estimateLines', 'estimateLowCents', 'fullName', 'id', 'lastContactAt', 'notificationAttemptedAt', 'notificationError', 'notificationSentAt', 'notificationStatus', 'phone', 'projectDescription', 'purgeAfter', 'selections', 'updatedAt', 'websiteUrl'] as const
+  static $columns = [
+    'companyName',
+    'createdAt',
+    'currency',
+    'desiredTimeline',
+    'email',
+    'estimateHighCents',
+    'estimateLines',
+    'estimateLowCents',
+    'fullName',
+    'id',
+    'lastContactAt',
+    'notificationAttemptedAt',
+    'notificationError',
+    'notificationSentAt',
+    'notificationStatus',
+    'phone',
+    'projectDescription',
+    'purgeAfter',
+    'selections',
+    'updatedAt',
+    'websiteUrl',
+  ] as const
   $columns = QuoteRequestSchema.$columns
   @column()
   declare companyName: string | null
@@ -55,7 +77,14 @@ export class QuoteRequestSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['createdAt', 'email', 'fullName', 'id', 'password', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'email',
+    'fullName',
+    'id',
+    'password',
+    'updatedAt',
+  ] as const
   $columns = UserSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

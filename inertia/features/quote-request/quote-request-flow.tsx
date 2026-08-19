@@ -248,7 +248,9 @@ export function QuoteRequestFlow() {
 
   useEffect(() => {
     try {
-      const savedDraft = window.localStorage.getItem(quoteRequestDraftStorageKey)
+      const savedDraft = window.localStorage.getItem(
+        quoteRequestDraftStorageKey,
+      )
       if (!savedDraft) return
 
       const parsedDraft: unknown = JSON.parse(savedDraft)
@@ -342,7 +344,7 @@ export function QuoteRequestFlow() {
         ? formula !== null
         : step === 'timeline'
           ? timeline !== null
-        : true
+          : true
 
   const next = () => {
     if (!canContinue) return
@@ -983,7 +985,10 @@ export function QuoteRequestFlow() {
               </h2>
               <ol className="mt-[0.875rem] grid grid-cols-1 gap-x-[1.375rem] gap-y-[0.875rem] sm:grid-cols-2 sm:grid-rows-[repeat(4,2.28125rem)]">
                 {graphicCharterContents.map(([label, description], index) => (
-                  <li className="flex h-[2.28125rem] items-start gap-3" key={label}>
+                  <li
+                    className="flex h-[2.28125rem] items-start gap-3"
+                    key={label}
+                  >
                     <span className="w-[1.375rem] shrink-0 font-meta text-xs font-bold text-[#f0606f]">
                       {String(index + 1).padStart(2, '0')}
                     </span>
@@ -1145,9 +1150,8 @@ export function QuoteRequestFlow() {
               </span>
               <span className="block">
                 Je m’entoure de partenaires de confiance (développement,
-                impression, SEO, rédaction de contenu, vidéaste,
-                photographe…) pour vous accompagner sur l’ensemble de votre
-                projet.
+                impression, SEO, rédaction de contenu, vidéaste, photographe…)
+                pour vous accompagner sur l’ensemble de votre projet.
               </span>
             </p>
           </section>
@@ -1171,8 +1175,8 @@ export function QuoteRequestFlow() {
                 Où vous envoyer le détail ?
               </h1>
               <p className="mt-1 text-base leading-6">
-                Je récupère votre demande et reviens vers vous sous 48h avec
-                un devis personnalisé.
+                Je récupère votre demande et reviens vers vous sous 48h avec un
+                devis personnalisé.
               </p>
             </div>
 
@@ -1260,7 +1264,10 @@ export function QuoteRequestFlow() {
                   label="Un mot sur votre projet"
                   name="projectDescription"
                   onChange={(event) =>
-                    updateContactDetails('projectDescription', event.target.value)
+                    updateContactDetails(
+                      'projectDescription',
+                      event.target.value,
+                    )
                   }
                   placeholder="Contexte, inspirations, contraintes…"
                   required
@@ -1301,7 +1308,12 @@ export function QuoteRequestFlow() {
       <footer
         className={cn(
           'fixed inset-x-0 bottom-0 z-20 border-t border-[#d4e0f5] bg-[#f0f4ff]/90 backdrop-blur-[5px]',
-          isIntro || isDomains || isBranding || isTimeline || isSummary || isContact
+          isIntro ||
+            isDomains ||
+            isBranding ||
+            isTimeline ||
+            isSummary ||
+            isContact
             ? 'pt-[1.3125rem] pb-[2.1875rem]'
             : '',
         )}
