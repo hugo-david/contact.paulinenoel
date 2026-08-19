@@ -1,18 +1,75 @@
-import type { ReactNode, RefObject } from 'react'
+import axios from 'axios'
+import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '~/components/ui'
+import brandingDomainIcon from '~/assets/images/domain-branding.svg'
+import digitalDomainIcon from '~/assets/images/domain-digital.svg'
+import printDomainIcon from '~/assets/images/domain-print.svg'
+import webDomainIcon from '~/assets/images/domain-web.svg'
+import estimationDot from '~/assets/images/estimation-dot.svg'
+import paulineNoelLogo from '~/assets/images/pauline-noel-logo.svg'
+import { Button, Textarea, TextInput } from '~/components/ui'
 import { cn } from '~/utils/cn'
 import type { BrandingFormula, DesiredTimeline } from './branding-estimate'
 import {
   brandingFormulas,
   calculateBrandingEstimate,
   formatEuros,
+  getEstimateSnapshotLines,
 } from './branding-estimate'
 import './quote-request-flow.css'
 
-type Step = 'intro' | 'domains' | 'branding' | 'timeline' | 'summary'
+type Step =
+  | 'intro'
+  | 'domains'
+  | 'branding'
+  | 'timeline'
+  | 'summary'
+  | 'contact'
 
-const workflowSteps: Step[] = ['domains', 'branding', 'timeline', 'summary']
+const workflowSteps: Step[] = [
+  'domains',
+  'branding',
+  'timeline',
+  'summary',
+  'contact',
+]
+
+interface ContactDetails {
+  companyName: string
+  email: string
+  fullName: string
+  phone: string
+  projectDescription: string
+  websiteUrl: string
+}
+
+type ContactField = keyof ContactDetails
+type SubmissionStatus = 'idle' | 'submitting' | 'failed' | 'sent'
+
+const initialContactDetails: ContactDetails = {
+  companyName: '',
+  email: '',
+  fullName: '',
+  phone: '',
+  projectDescription: '',
+  websiteUrl: '',
+}
+
+const quoteRequestDraftStorageKey = 'pauline-noel:quote-request-draft:v1'
+
+interface QuoteRequestDraft {
+  brandingSelected: boolean
+  contactDetails: ContactDetails
+  formula: BrandingFormula | null
+  step: Step
+  timeline: DesiredTimeline | null
+}
+
+const introBenefits = [
+  'Branding, sites web, supports imprimés & digitaux',
+  'Une fourchette claire, détaillée ligne par ligne',
+  'un devis détaillé sous 48h',
+] as const
 
 const graphicCharterContents = [
   ['La vision', 'Mission, ton et positionnement de la marque'],
@@ -27,60 +84,72 @@ const graphicCharterContents = [
 
 const timelines: Array<{
   description: string
+  emphasis?: string
   label: string
   value: DesiredTimeline
 }> = [
   {
     value: 'flexible',
     label: 'Je suis flexible',
-    description: "On cale ensemble, pas d'urgence",
+    description: 'On fixe ensemble, pas d’urgence',
   },
   {
     value: 'normal',
     label: '10 jours à 1 mois',
-    description: 'Sans développement',
+    description: '',
   },
   {
     value: 'express',
-    label: 'Express — 1 semaine',
-    description: 'Priorisation du planning · +25 %',
+    label: 'Express',
+    emphasis: '-10 jours',
+    description: 'Hors site internet • priorisation du planning + 20 %',
   },
 ]
 
-function BrandingIcon() {
-  return (
-    <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" />
-    </svg>
+function isBrandingFormula(value: unknown): value is BrandingFormula {
+  return value === 'refonte' || value === 'mixte' || value === 'creation'
+}
+
+function isContactDetails(value: unknown): value is ContactDetails {
+  if (typeof value !== 'object' || value === null) return false
+
+  return Object.keys(initialContactDetails).every(
+    (field) => typeof (value as Record<string, unknown>)[field] === 'string',
   )
 }
 
-function WebIcon() {
+function isDesiredTimeline(value: unknown): value is DesiredTimeline {
+  return value === 'flexible' || value === 'normal' || value === 'express'
+}
+
+function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
+  if (typeof value !== 'object' || value === null) return false
+
+  const draft = value as Record<string, unknown>
+  const isStep = [
+    'intro',
+    'domains',
+    'branding',
+    'timeline',
+    'summary',
+    'contact',
+  ].includes(draft.step as string)
+
   return (
-    <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
-      <rect height="14" rx="2" width="20" x="2" y="4" />
-      <path d="M2 9h20M6 21h12" />
-    </svg>
+    typeof draft.brandingSelected === 'boolean' &&
+    isContactDetails(draft.contactDetails) &&
+    (draft.formula === null || isBrandingFormula(draft.formula)) &&
+    isStep &&
+    (draft.timeline === null || isDesiredTimeline(draft.timeline))
   )
 }
 
-function PrintIcon() {
-  return (
-    <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
-      <path d="M6 9V3h12v6M6 18h12v3H6z" />
-      <rect height="9" rx="1.5" width="18" x="3" y="9" />
-    </svg>
-  )
-}
-
-function DigitalIcon() {
-  return (
-    <svg aria-hidden="true" className="size-8" fill="none" viewBox="0 0 24 24">
-      <rect height="12" rx="2" width="18" x="3" y="5" />
-      <path d="M3 9h18M7 13h4" />
-    </svg>
-  )
+function removeQuoteRequestDraft() {
+  try {
+    window.localStorage.removeItem(quoteRequestDraftStorageKey)
+  } catch {
+    // Le parcours doit rester utilisable si le navigateur bloque localStorage.
+  }
 }
 
 interface DomainCardProps {
@@ -103,9 +172,9 @@ function DomainCard({
   return (
     <label
       className={cn(
-        'relative min-h-40 rounded-[1.125rem] border border-[#1e2324] bg-white p-5 text-start',
+        'relative flex min-h-[13.8125rem] flex-col items-center justify-center gap-[1.1875rem] rounded-[1.125rem] border border-[#cfcfcf] bg-white px-5 py-[1.3125rem] text-center sm:px-[4.1875rem]',
         'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3',
-        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
       )}
     >
       <input
@@ -115,18 +184,17 @@ function DomainCard({
         onChange={(event) => onChange?.(event.target.checked)}
         type="checkbox"
       />
-      <span className="block stroke-[#1f2a28] stroke-[1.6]">{icon}</span>
-      <span className="mt-3.5 block font-heading text-[1.0625rem] font-bold">
-        {label}
+      <span className="flex h-[2.4rem] items-center justify-center">
+        {icon}
       </span>
-      <span className="mt-1 block text-[0.84375rem] leading-[1.4] text-[#7a7e79]">
-        {description}
-      </span>
-      {disabled && (
-        <span className="mt-3 inline-block rounded-full bg-[#e7e8f2] px-2.5 py-1 text-xs font-semibold text-[#454b57]">
-          Prochainement
+      <span>
+        <span className="block font-heading text-[1.1875rem] leading-normal font-bold">
+          {label}
         </span>
-      )}
+        <span className="mt-1 block text-[0.84375rem] leading-[1.45]">
+          {description}
+        </span>
+      </span>
       {checked && (
         <>
           <span
@@ -145,59 +213,106 @@ function DomainCard({
   )
 }
 
-interface StepHeadingProps {
-  eyebrow?: string
-  heading: string
-  headingId: string
-  headingRef: RefObject<HTMLHeadingElement | null>
-  intro?: ReactNode
-}
-
-function StepHeading({
-  eyebrow,
-  heading,
-  headingId,
-  headingRef,
-  intro,
-}: StepHeadingProps) {
-  return (
-    <div>
-      {eyebrow && (
-        <p className="mb-1.5 text-[0.8125rem] font-semibold tracking-[0.04em] text-[#f0606f] uppercase">
-          {eyebrow}
-        </p>
-      )}
-      <h1
-        className="font-heading text-3xl leading-tight font-bold tracking-[-0.025em]"
-        id={headingId}
-        ref={headingRef}
-        tabIndex={-1}
-      >
-        {heading}
-      </h1>
-      {intro && <div className="mt-2 text-base text-[#6e726e]">{intro}</div>}
-    </div>
-  )
-}
-
 export function QuoteRequestFlow() {
   const [step, setStep] = useState<Step>('intro')
   const [brandingSelected, setBrandingSelected] = useState(false)
   const [formula, setFormula] = useState<BrandingFormula | null>(null)
-  const [timeline, setTimeline] = useState<DesiredTimeline>('normal')
-  const [budgetEuros, setBudgetEuros] = useState(0)
+  const [timeline, setTimeline] = useState<DesiredTimeline | null>(null)
+  const [contactDetails, setContactDetails] = useState<ContactDetails>(
+    initialContactDetails,
+  )
+  const [contactErrors, setContactErrors] = useState<
+    Partial<Record<ContactField, string>>
+  >({})
+  const [submissionStatus, setSubmissionStatus] =
+    useState<SubmissionStatus>('idle')
+  const [submissionError, setSubmissionError] = useState('')
+  const [isDraftRestored, setIsDraftRestored] = useState(false)
   const stepHeadingRef = useRef<HTMLHeadingElement>(null)
   const previousStepRef = useRef<Step>('intro')
 
   const estimate = calculateBrandingEstimate({
-    budgetCents: budgetEuros > 0 ? budgetEuros * 100 : null,
     formula,
-    timeline,
+    timeline: timeline ?? 'normal',
   })
   const workflowStepIndex = workflowSteps.indexOf(step)
+  const isBranding = step === 'branding'
+  const isContact = step === 'contact'
+  const isDomains = step === 'domains'
+  const isIntro = step === 'intro'
+  const isSummary = step === 'summary'
+  const isTimeline = step === 'timeline'
   const showCounter = workflowStepIndex >= 0
   const showLiveEstimate =
     estimate.lowCents > 0 && step !== 'intro' && step !== 'summary'
+
+  useEffect(() => {
+    try {
+      const savedDraft = window.localStorage.getItem(quoteRequestDraftStorageKey)
+      if (!savedDraft) return
+
+      const parsedDraft: unknown = JSON.parse(savedDraft)
+      if (!isQuoteRequestDraft(parsedDraft)) {
+        removeQuoteRequestDraft()
+        return
+      }
+
+      setBrandingSelected(parsedDraft.brandingSelected)
+      setContactDetails(parsedDraft.contactDetails)
+      setFormula(parsedDraft.formula)
+      setStep(parsedDraft.step)
+      setTimeline(parsedDraft.timeline)
+    } catch {
+      removeQuoteRequestDraft()
+    } finally {
+      setIsDraftRestored(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isDraftRestored || submissionStatus === 'sent') return
+
+    const hasDraft =
+      step !== 'intro' ||
+      brandingSelected ||
+      formula !== null ||
+      timeline !== null ||
+      Object.values(contactDetails).some(Boolean)
+
+    if (!hasDraft) {
+      removeQuoteRequestDraft()
+      return
+    }
+
+    const draft: QuoteRequestDraft = {
+      brandingSelected,
+      contactDetails,
+      formula,
+      step,
+      timeline,
+    }
+
+    try {
+      window.localStorage.setItem(
+        quoteRequestDraftStorageKey,
+        JSON.stringify(draft),
+      )
+    } catch {
+      // Le parcours doit rester utilisable si le navigateur bloque localStorage.
+    }
+  }, [
+    brandingSelected,
+    contactDetails,
+    formula,
+    isDraftRestored,
+    step,
+    submissionStatus,
+    timeline,
+  ])
+
+  useEffect(() => {
+    if (submissionStatus === 'sent') removeQuoteRequestDraft()
+  }, [submissionStatus])
 
   useEffect(() => {
     if (previousStepRef.current !== step) {
@@ -205,6 +320,12 @@ export function QuoteRequestFlow() {
       previousStepRef.current = step
     }
   }, [step])
+
+  useEffect(() => {
+    if (submissionStatus === 'sent') {
+      stepHeadingRef.current?.focus({ preventScroll: true })
+    }
+  }, [submissionStatus])
 
   const moveToStep = (nextStep: Step) => {
     setStep(nextStep)
@@ -219,6 +340,8 @@ export function QuoteRequestFlow() {
       ? brandingSelected
       : step === 'branding'
         ? formula !== null
+        : step === 'timeline'
+          ? timeline !== null
         : true
 
   const next = () => {
@@ -229,6 +352,7 @@ export function QuoteRequestFlow() {
       domains: 'branding',
       branding: 'timeline',
       timeline: 'summary',
+      summary: 'contact',
     }
     const target = nextStep[step]
     if (target) moveToStep(target)
@@ -240,91 +364,432 @@ export function QuoteRequestFlow() {
       branding: 'domains',
       timeline: 'branding',
       summary: 'timeline',
+      contact: 'summary',
     }
     const target = previousStep[step]
     if (target) moveToStep(target)
   }
 
-  const budgetLabel =
-    budgetEuros === 0
-      ? 'Non précisé'
-      : budgetEuros >= 10_000
-        ? '10 000 € +'
-        : formatEuros(budgetEuros * 100)
+  const updateContactDetails = (field: ContactField, value: string) => {
+    setContactDetails((current) => ({ ...current, [field]: value }))
+    setContactErrors((current) => ({ ...current, [field]: undefined }))
+    setSubmissionStatus('idle')
+    setSubmissionError('')
+  }
+
+  const validateContactDetails = () => {
+    const errors: Partial<Record<ContactField, string>> = {}
+
+    if (!contactDetails.fullName.trim()) {
+      errors.fullName = 'Indiquez votre nom.'
+    }
+    if (!/^\S+@\S+\.\S+$/.test(contactDetails.email.trim())) {
+      errors.email = 'Indiquez un e-mail valide.'
+    }
+    if (!contactDetails.projectDescription.trim()) {
+      errors.projectDescription = 'Décrivez votre projet en quelques mots.'
+    }
+    if (contactDetails.websiteUrl.trim()) {
+      try {
+        const websiteUrl = new URL(contactDetails.websiteUrl)
+        if (!['http:', 'https:'].includes(websiteUrl.protocol)) {
+          errors.websiteUrl =
+            'Indiquez une adresse commençant par http:// ou https://.'
+        }
+      } catch {
+        errors.websiteUrl = 'Indiquez une adresse web valide.'
+      }
+    }
+
+    setContactErrors(errors)
+    const firstInvalidField = Object.keys(errors)[0]
+    if (firstInvalidField) {
+      requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>(`[name="${firstInvalidField}"]`)
+          ?.focus()
+      })
+      return false
+    }
+
+    return true
+  }
+
+  const submitQuoteRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (submissionStatus === 'submitting' || !formula || !timeline) return
+    if (!validateContactDetails()) return
+
+    setSubmissionStatus('submitting')
+    setSubmissionError('')
+
+    try {
+      await axios.post('/demandes-de-devis', {
+        ...contactDetails,
+        desiredTimeline: timeline,
+        estimate: {
+          highCents: estimate.highCents,
+          lines: getEstimateSnapshotLines(estimate),
+          lowCents: estimate.lowCents,
+        },
+        selections: { branding: { formula } },
+      })
+      setSubmissionStatus('sent')
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 422) {
+        const validationErrors = error.response.data?.errors
+        if (Array.isArray(validationErrors)) {
+          const errors = Object.fromEntries(
+            validationErrors.map(
+              (validationError: { field: ContactField; message: string }) => [
+                validationError.field,
+                validationError.message,
+              ],
+            ),
+          )
+          setContactErrors(errors)
+          const firstInvalidField = validationErrors[0]?.field
+          if (typeof firstInvalidField === 'string') {
+            requestAnimationFrame(() => {
+              document
+                .querySelector<HTMLElement>(`[name="${firstInvalidField}"]`)
+                ?.focus()
+            })
+          }
+        }
+        setSubmissionStatus('idle')
+        return
+      }
+
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message
+        : null
+      setSubmissionError(
+        typeof message === 'string'
+          ? message
+          : "Votre demande n'a pas pu être envoyée. Vérifiez votre connexion et réessayez.",
+      )
+      setSubmissionStatus('failed')
+    }
+  }
+
+  const resetFlow = () => {
+    removeQuoteRequestDraft()
+    setStep('intro')
+    setBrandingSelected(false)
+    setFormula(null)
+    setTimeline(null)
+    setContactDetails(initialContactDetails)
+    setContactErrors({})
+    setSubmissionStatus('idle')
+    setSubmissionError('')
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }
+
+  if (submissionStatus === 'sent') {
+    const firstName = contactDetails.fullName.trim().split(/\s+/)[0]
+
+    return (
+      <div className="min-h-dvh bg-[#f0f4ff] text-[#1f2a28]">
+        <header className="border-b-[3px] border-[#f0606f]">
+          <div className="mx-auto max-w-[47.5rem] px-4 py-5 sm:px-6">
+            <span className="font-heading text-[1.375rem] font-bold tracking-[-0.01em]">
+              Pauline Noël
+            </span>
+          </div>
+        </header>
+        <section
+          aria-labelledby="confirmation-heading"
+          className="mx-auto flex max-w-[47.5rem] flex-col items-center px-4 pt-16 text-center sm:px-6 sm:pt-20"
+        >
+          <span
+            aria-hidden="true"
+            className="flex size-[4.625rem] items-center justify-center rounded-full bg-[#f0606f] text-[2.25rem] text-white"
+          >
+            ✓
+          </span>
+          <h1
+            className="mt-7 font-heading text-[2rem] font-bold tracking-[-0.03em]"
+            id="confirmation-heading"
+            ref={stepHeadingRef}
+            tabIndex={-1}
+          >
+            C’est noté !
+          </h1>
+          <p className="mt-3 max-w-[38ch] text-lg leading-normal text-[#5f6561]">
+            Merci {firstName}. J’ai bien reçu votre demande, je reviens vers
+            vous sous 48h avec un devis personnalisé.
+          </p>
+          <div className="mt-7 rounded-[1rem] border border-[#1e2324] bg-white px-9 py-5">
+            <p className="text-[0.75rem] font-semibold tracking-[0.05em] text-[#7a7e79] uppercase">
+              Estimation
+            </p>
+            <p className="mt-1 font-heading text-[1.875rem] font-bold">
+              {formatEuros(estimate.lowCents)}
+            </p>
+          </div>
+          <button
+            className="mt-7 min-h-11 font-semibold text-[#f0606f] underline decoration-2 underline-offset-4"
+            onClick={resetFlow}
+            type="button"
+          >
+            Faire une nouvelle estimation
+          </button>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-dvh bg-[#f0f4ff] text-[#1f2a28]">
-      <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff]/90 backdrop-blur-[10px]">
-        <div className="mx-auto flex max-w-[47.5rem] items-center gap-4 px-4 py-4 sm:px-6">
-          <span className="font-heading text-[1.375rem] font-bold tracking-[-0.01em]">
-            Pauline Noël
-          </span>
-          <span className="flex-1" />
-          {showLiveEstimate && (
-            <output
-              aria-live="polite"
-              className="hidden items-center gap-2 rounded-full bg-[#1f2a28] px-3.5 py-2 text-[0.8125rem] font-semibold text-white sm:flex"
-            >
-              <span
-                aria-hidden="true"
-                className="size-[0.4375rem] rounded-full bg-[#f0606f]"
-              />
-              Estimation&nbsp;: {formatEuros(estimate.lowCents)}
-            </output>
-          )}
-          {showCounter && (
-            <span className="whitespace-nowrap text-[0.78125rem] font-semibold text-[#7a7e79]">
-              Étape {workflowStepIndex + 1} / {workflowSteps.length}
+      {isIntro ? (
+        <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
+          <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-[1.125rem]">
+                <img
+                  alt=""
+                  className="h-[1.9375rem] w-[2.006rem]"
+                  height="31"
+                  src={paulineNoelLogo}
+                  width="32"
+                />
+                <span className="font-heading text-[clamp(1.375rem,2vw,1.6875rem)] font-semibold tracking-[-0.046em]">
+                  Pauline Noël
+                </span>
+              </div>
+              <span aria-hidden="true" className="w-16" />
+            </div>
+            <div aria-hidden="true" className="h-[3px] bg-white">
+              <div className="h-full w-2/5 bg-[#f0606f]" />
+            </div>
+          </div>
+        </header>
+      ) : isDomains ? (
+        <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
+          <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-[1.125rem]">
+                <img
+                  alt=""
+                  className="h-[1.9375rem] w-[2.006rem]"
+                  height="31"
+                  src={paulineNoelLogo}
+                  width="32"
+                />
+                <span className="font-heading text-[clamp(1.375rem,2vw,1.6875rem)] font-bold tracking-[-0.046em]">
+                  Pauline Noël
+                </span>
+              </div>
+              <span className="font-meta text-[0.78125rem] font-semibold text-[#1e2324]">
+                Étape 1 / 6
+              </span>
+            </div>
+            <div aria-hidden="true" className="h-[3px] bg-white">
+              <div className="h-full w-2/5 bg-[#f0606f]" />
+            </div>
+          </div>
+        </header>
+      ) : isBranding ? (
+        <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
+          <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-[1.125rem]">
+                <img
+                  alt=""
+                  className="h-[1.9375rem] w-[2.006rem]"
+                  height="31"
+                  src={paulineNoelLogo}
+                  width="32"
+                />
+                <span className="font-heading text-[clamp(1.375rem,2vw,1.6875rem)] font-bold tracking-[-0.046em]">
+                  Pauline Noël
+                </span>
+              </div>
+              <span className="font-meta text-[0.78125rem] font-semibold text-[#1e2324]">
+                Étape 2 / 6
+              </span>
+            </div>
+            <div aria-hidden="true" className="h-[3px] bg-white">
+              <div className="h-full w-2/5 bg-[#f0606f]" />
+            </div>
+          </div>
+        </header>
+      ) : isTimeline ? (
+        <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
+          <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-[1.125rem]">
+                <img
+                  alt=""
+                  className="h-[1.9375rem] w-[2.006rem]"
+                  height="31"
+                  src={paulineNoelLogo}
+                  width="32"
+                />
+                <span className="font-heading text-[clamp(1.375rem,2vw,1.6875rem)] font-bold tracking-[-0.046em]">
+                  Pauline Noël
+                </span>
+              </div>
+              <div className="flex items-center gap-[0.9375rem]">
+                <output
+                  aria-live="polite"
+                  className="hidden h-[2.6875rem] items-center gap-[0.3125rem] rounded-full bg-[#1e2324] px-[1.875rem] py-[0.875rem] text-[0.9375rem] font-bold whitespace-nowrap text-white sm:flex"
+                >
+                  <img
+                    alt=""
+                    className="size-1.5"
+                    height="6"
+                    src={estimationDot}
+                    width="6"
+                  />
+                  Estimation&nbsp;: {formatEuros(estimate.lowCents)}
+                </output>
+                <span className="font-meta text-[0.78125rem] font-semibold whitespace-nowrap text-[#1e2324]">
+                  Étape 6 / 6
+                </span>
+              </div>
+            </div>
+            <div aria-hidden="true" className="h-[3px] bg-white">
+              <div className="h-full w-2/5 bg-[#f0606f]" />
+            </div>
+          </div>
+        </header>
+      ) : isSummary ? (
+        <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
+          <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-[1.125rem]">
+                <img
+                  alt=""
+                  className="h-[1.9375rem] w-[2.006rem]"
+                  height="31"
+                  src={paulineNoelLogo}
+                  width="32"
+                />
+                <span className="font-heading text-[clamp(1.375rem,2vw,1.6875rem)] font-bold tracking-[-0.046em]">
+                  Pauline Noël
+                </span>
+              </div>
+              <span className="font-meta text-[0.78125rem] font-semibold text-[#1e2324]">
+                Estimation
+              </span>
+            </div>
+            <div aria-hidden="true" className="h-[3px] bg-white">
+              <div className="h-full w-2/5 bg-[#f0606f]" />
+            </div>
+          </div>
+        </header>
+      ) : isContact ? (
+        <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
+          <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-[1.125rem]">
+                <img
+                  alt=""
+                  className="h-[1.9375rem] w-[2.006rem]"
+                  height="31"
+                  src={paulineNoelLogo}
+                  width="32"
+                />
+                <span className="font-heading text-[clamp(1.375rem,2vw,1.6875rem)] font-bold tracking-[-0.046em]">
+                  Pauline Noël
+                </span>
+              </div>
+              <span className="font-meta text-[0.78125rem] font-semibold text-[#1e2324]">
+                Vos coordonnées
+              </span>
+            </div>
+            <div aria-hidden="true" className="h-[3px] bg-white">
+              <div className="h-full w-2/5 bg-[#f0606f]" />
+            </div>
+          </div>
+        </header>
+      ) : (
+        <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff]/90 backdrop-blur-[10px]">
+          <div className="mx-auto flex max-w-[47.5rem] items-center gap-4 px-4 py-4 sm:px-6">
+            <span className="font-heading text-[1.375rem] font-bold tracking-[-0.01em]">
+              Pauline Noël
             </span>
-          )}
-        </div>
-        <div aria-hidden="true" className="h-[3px] bg-white">
-          <div
-            className="h-full bg-[#f0606f] transition-[width] duration-300 motion-reduce:transition-none"
-            style={{
-              width:
-                step === 'intro'
-                  ? '0%'
-                  : `${((workflowStepIndex + 1) / workflowSteps.length) * 100}%`,
-            }}
-          />
-        </div>
-      </header>
+            <span className="flex-1" />
+            {showLiveEstimate && (
+              <output
+                aria-live="polite"
+                className="hidden items-center gap-2 rounded-full bg-[#1f2a28] px-3.5 py-2 text-[0.8125rem] font-semibold text-white sm:flex"
+              >
+                <span
+                  aria-hidden="true"
+                  className="size-[0.4375rem] rounded-full bg-[#f0606f]"
+                />
+                Estimation&nbsp;: {formatEuros(estimate.lowCents)}
+              </output>
+            )}
+            {showCounter && (
+              <span className="whitespace-nowrap text-[0.78125rem] font-semibold text-[#7a7e79]">
+                Étape {workflowStepIndex + 1} / {workflowSteps.length}
+              </span>
+            )}
+          </div>
+          <div aria-hidden="true" className="h-[3px] bg-white">
+            <div
+              className="h-full bg-[#f0606f] transition-[width] duration-300 motion-reduce:transition-none"
+              style={{
+                width: `${((workflowStepIndex + 1) / workflowSteps.length) * 100}%`,
+              }}
+            />
+          </div>
+        </header>
+      )}
 
-      <div className="mx-auto w-full max-w-[47.5rem] px-4 pt-10 pb-36 sm:px-6">
+      <div
+        className={cn(
+          'mx-auto w-full',
+          isIntro
+            ? 'flex min-h-[calc(100dvh-8.3125rem)] max-w-[67.5rem] items-center px-5 pt-10 pb-32 sm:px-8 lg:px-12 xl:px-0'
+            : isDomains || isBranding || isTimeline || isSummary || isContact
+              ? 'max-w-[67.5rem] px-5 pt-10 pb-[8.5rem] sm:px-8 lg:px-12 xl:px-0'
+              : 'max-w-[47.5rem] px-4 pt-10 pb-36 sm:px-6',
+        )}
+      >
         {step === 'intro' && (
-          <section aria-labelledby="intro-heading">
-            <p className="mb-[1.125rem] text-[0.8125rem] font-semibold tracking-[0.04em] text-[#f0606f] uppercase">
+          <section
+            aria-labelledby="intro-heading"
+            className="mx-auto flex w-full max-w-[48.375rem] flex-col items-center pt-[0.1875rem] text-center"
+          >
+            <p className="text-xs font-semibold tracking-[0.043em] text-[#ff6373] uppercase">
               Estimation de projet
             </p>
             <h1
-              className="max-w-[22ch] font-heading text-[clamp(2.5rem,8vw,2.875rem)] leading-[1.04] font-bold tracking-[-0.03em]"
+              className="mt-[1.0625rem] font-heading text-[clamp(2.625rem,5.2vw,3.875rem)] leading-[0.984] font-bold tracking-[-0.047em]"
               id="intro-heading"
               ref={stepHeadingRef}
               tabIndex={-1}
             >
               Donnons un{' '}
-              <span className="rounded-sm bg-[#f0606f] px-[0.12em] text-white">
-                budget
+              <span className="relative isolate inline-block px-[0.1em] text-white">
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 top-[0.035em] -z-10 h-[1.01em] rounded-[2px] bg-[#1e2324]"
+                />
+                valeur
               </span>
               <br />à votre idée.
             </h1>
-            <p className="mt-[1.125rem] max-w-[46ch] text-lg leading-normal text-[#5c615d]">
-              En 2 minutes, répondez à quelques questions sur votre projet et
-              obtenez une fourchette de prix détaillée, au plus juste. Sans
-              engagement.
+            <p className="mt-6 max-w-[48.375rem] text-base leading-6">
+              En 2 minutes, répondez à quelques questions sur votre projet{' '}
+              <br className="hidden sm:block" />
+              et obtenez une fourchette de prix détaillée, au plus juste.{' '}
+              <br className="hidden sm:block" />
+              Sans engagement.
             </p>
-            <ul className="mt-[1.875rem] flex max-w-[27.5rem] flex-col gap-3 text-[0.9375rem] text-[#3a403c]">
-              {[
-                'Branding, sites web, supports imprimés & digitaux',
-                'Une fourchette claire, détaillée ligne par ligne',
-                'Et, si vous le souhaitez, un devis détaillé sous 48h',
-              ].map((benefit) => (
-                <li className="flex items-start gap-3" key={benefit}>
-                  <span aria-hidden="true" className="text-[#f0606f]">
-                    ✓
-                  </span>
-                  {benefit}
+            <ul className="mt-6 flex flex-wrap items-center justify-center gap-[0.4375rem]">
+              {introBenefits.map((benefit) => (
+                <li
+                  className="rounded-full border border-[#c7c7c7] bg-white px-2.5 py-1 text-center text-xs leading-[1.1875rem] font-bold tracking-[0.03em] text-[#ff5b6c]"
+                  key={benefit}
+                >
+                  ✓ {benefit}
                 </li>
               ))}
             </ul>
@@ -332,46 +797,84 @@ export function QuoteRequestFlow() {
         )}
 
         {step === 'domains' && (
-          <section aria-labelledby="domains-heading">
-            <StepHeading
-              heading="De quoi avez-vous besoin ?"
-              headingId="domains-heading"
-              headingRef={stepHeadingRef}
-              intro={
-                <p id="domains-help">
-                  Choisissez un ou plusieurs pôles. On ne vous posera que les
-                  questions utiles.
-                </p>
-              }
-            />
+          <section
+            aria-labelledby="domains-heading"
+            className="mx-auto w-full max-w-[48.375rem] pt-[0.1875rem] text-center"
+          >
+            <div>
+              <h1
+                className="font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="domains-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                De quoi avez-vous besoin ?
+              </h1>
+              <p className="mt-0.5 text-base leading-6" id="domains-help">
+                Choisissez un ou plusieurs pôles. On ne vous posera que les
+                questions utiles.
+              </p>
+            </div>
             <fieldset
               aria-describedby="domains-help"
-              className="mt-7 grid grid-cols-1 gap-3.5 sm:grid-cols-2"
+              className="mt-[1.3125rem] grid grid-cols-1 gap-[0.8125rem] sm:grid-cols-2"
             >
               <legend className="sr-only">Pôles de prestations</legend>
               <DomainCard
                 checked={brandingSelected}
-                description="Logo, charte graphique, refonte"
-                icon={<BrandingIcon />}
+                description="Création de logo, refonte de logo, charte graphique"
+                icon={
+                  <img
+                    alt=""
+                    className="h-[2.383375rem] w-[2.96875rem]"
+                    height="38"
+                    src={brandingDomainIcon}
+                    width="48"
+                  />
+                }
                 label="Identité & branding"
                 onChange={setBrandingSelected}
               />
               <DomainCard
-                description="Vitrine, e-commerce, landing, refonte"
+                description="site vitrine, site e-commerce, landing, refonte de l’existant"
                 disabled
-                icon={<WebIcon />}
+                icon={
+                  <img
+                    alt=""
+                    className="h-[2.39375rem] w-[2.630875rem]"
+                    height="38"
+                    src={printDomainIcon}
+                    width="42"
+                  />
+                }
                 label="Site internet · design UX/UI"
               />
               <DomainCard
-                description="Flyer, affiche, carte de visite, covering…"
+                description="Flyer, affiche, dépliant, carte de visite, plaquette commerciale, covering…"
                 disabled
-                icon={<PrintIcon />}
+                icon={
+                  <img
+                    alt=""
+                    className="h-[2.383125rem] w-[2.586125rem]"
+                    height="38"
+                    src={webDomainIcon}
+                    width="41"
+                  />
+                }
                 label="Supports de com. imprimés"
               />
               <DomainCard
-                description="Newsletter, posts réseaux sociaux, signature, slides"
+                description="Newsletter, posts réseaux sociaux, signature, slides pptx"
                 disabled
-                icon={<DigitalIcon />}
+                icon={
+                  <img
+                    alt=""
+                    className="h-[2.375rem] w-[2.6011875rem]"
+                    height="38"
+                    src={digitalDomainIcon}
+                    width="42"
+                  />
+                }
                 label="Supports de com. digitaux"
               />
             </fieldset>
@@ -379,37 +882,24 @@ export function QuoteRequestFlow() {
         )}
 
         {step === 'branding' && (
-          <section aria-labelledby="branding-heading">
-            <StepHeading
-              eyebrow="Identité & branding"
-              heading="Quelle formule ?"
-              headingId="branding-heading"
-              headingRef={stepHeadingRef}
-              intro={
-                <>
-                  <p>
-                    Chaque formule comprend un{' '}
-                    <strong className="font-semibold text-[#3a403c]">
-                      brief créatif
-                    </strong>
-                    , un{' '}
-                    <strong className="font-semibold text-[#3a403c]">
-                      persona
-                    </strong>
-                    , des{' '}
-                    <strong className="font-semibold text-[#3a403c]">
-                      moodboards
-                    </strong>
-                    , plusieurs pistes de logo et la charte graphique.
-                  </p>
-                  <p className="mt-2 text-sm text-[#7a7e79]">
-                    Valise graphique (exports des éléments) et cession des
-                    droits incluses. Base&nbsp;: 450&nbsp;€ / jour.
-                  </p>
-                </>
-              }
-            />
-            <fieldset className="mt-[1.375rem] flex flex-col gap-[0.8125rem]">
+          <section
+            aria-labelledby="branding-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Identité & branding
+              </p>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="branding-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Quelle formule ?
+              </h1>
+            </div>
+            <fieldset className="mt-8 flex flex-col gap-[0.8125rem]">
               <legend className="sr-only">
                 Formule d’identité et branding
               </legend>
@@ -420,8 +910,8 @@ export function QuoteRequestFlow() {
               ).map(([value, definition]) => (
                 <label
                   className={cn(
-                    'relative cursor-pointer rounded-[1.125rem] border border-[#1e2324] bg-white px-5 py-[1.125rem]',
-                    'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3 sm:px-[1.375rem] sm:py-5',
+                    'relative cursor-pointer rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.4375rem] py-[1.3125rem]',
+                    'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3',
                   )}
                   key={value}
                 >
@@ -436,23 +926,23 @@ export function QuoteRequestFlow() {
                   <span className="flex items-start gap-4">
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-heading text-[1.0625rem] font-bold">
+                        <span className="font-heading text-[1.1875rem] leading-normal font-bold">
                           {definition.label}
                         </span>
                         {'popular' in definition && definition.popular && (
-                          <span className="rounded-full bg-[#1f2a28] px-2 py-0.5 text-[0.6875rem] font-bold text-white">
+                          <span className="rounded-full bg-[#1f2a28] px-2 py-[0.1875rem] font-meta text-[0.6875rem] font-bold text-white">
                             POPULAIRE
                           </span>
                         )}
-                        <span className="text-xs text-[#7a7e79]">
+                        <span className="font-meta text-xs text-[#a0a3a3]">
                           {definition.duration}
                         </span>
                       </span>
-                      <span className="mt-1 block text-[0.84375rem] leading-[1.45] text-[#7a7e79]">
+                      <span className="mt-[0.17375rem] block text-[0.84375rem] leading-[1.45] text-[#1f2a28]">
                         {definition.description}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[0.9375rem] font-bold text-[#f0606f]">
+                    <span className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
                       {formatEuros(definition.priceCents)}
                     </span>
                   </span>
@@ -466,32 +956,42 @@ export function QuoteRequestFlow() {
               ))}
             </fieldset>
 
-            <aside className="relative mt-7 overflow-hidden rounded-[1.25rem] bg-[#1f2a28] px-5 py-6 text-white sm:px-[1.625rem]">
-              <span
-                aria-hidden="true"
-                className="absolute -end-10 -top-10 size-[9.375rem] rounded-full bg-[#f0606f]/15"
-              />
-              <p className="relative inline-block rounded-full bg-[#ff929d] px-3.5 py-1.5 text-xs font-bold text-[#1f2a28]">
+            <p className="mt-3 text-right text-sm text-[#1f2a28]/70">
+              Cession des droits incluses. Base&nbsp;: 450&nbsp;€ / jour.
+            </p>
+
+            <aside className="mt-7 rounded-[1.25rem] bg-[#1f2a28] px-5 py-7 text-white sm:px-[2.8125rem] sm:py-[2.75rem]">
+              <p className="inline-block rounded-full bg-[#ff929d] px-2.5 py-0 font-body text-xs leading-[1.1875rem] font-bold tracking-[0.03em] text-[#1f2a28]">
                 Inclus dans chaque formule
               </p>
-              <h2 className="relative mt-2 font-heading text-[1.3125rem] font-bold tracking-[-0.02em]">
-                Ce que contient votre charte graphique
+              <ul className="mt-[1.1875rem] grid grid-flow-col grid-rows-3 gap-x-6 gap-y-1 text-[0.90625rem] text-[#a0a3a3]">
+                {[
+                  'Brief créatif',
+                  'Étude des cibles/personas,',
+                  'Moodboards',
+                  'Plusieurs pistes de logo',
+                  'Charte graphique',
+                  'Valise graphique (exports des éléments)',
+                ].map((item) => (
+                  <li className="ms-5 list-disc" key={item}>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <h2 className="mt-[1.6875rem] font-heading text-[1.1875rem] leading-normal font-bold">
+                Ce que contient votre charte graphique :
               </h2>
-              <p className="relative mt-1.5 max-w-[48ch] text-sm leading-normal text-[#b9beb9]">
-                Un véritable guide de marque, votre « bible » à consulter à
-                chaque nouvelle création.
-              </p>
-              <ol className="relative mt-5 grid grid-cols-1 gap-x-[1.375rem] gap-y-3.5 sm:grid-cols-2">
+              <ol className="mt-[0.875rem] grid grid-cols-1 gap-x-[1.375rem] gap-y-[0.875rem] sm:grid-cols-2 sm:grid-rows-[repeat(4,2.28125rem)]">
                 {graphicCharterContents.map(([label, description], index) => (
-                  <li className="flex items-start gap-3" key={label}>
-                    <span className="w-[1.375rem] shrink-0 text-xs font-bold text-[#f0606f]">
+                  <li className="flex h-[2.28125rem] items-start gap-3" key={label}>
+                    <span className="w-[1.375rem] shrink-0 font-meta text-xs font-bold text-[#f0606f]">
                       {String(index + 1).padStart(2, '0')}
                     </span>
                     <span>
-                      <span className="block text-[0.90625rem] font-semibold">
+                      <span className="block font-meta text-[0.90625rem] font-semibold">
                         {label}
                       </span>
-                      <span className="mt-px block text-[0.78125rem] leading-[1.4] text-[#9da29d]">
+                      <span className="mt-px block font-meta text-[0.78125rem] leading-[1.4] text-[#a0a3a3]">
                         {description}
                       </span>
                     </span>
@@ -503,19 +1003,28 @@ export function QuoteRequestFlow() {
         )}
 
         {step === 'timeline' && (
-          <section aria-labelledby="timeline-heading">
-            <StepHeading
-              eyebrow="Dernière étape"
-              heading="Pour quand ?"
-              headingId="timeline-heading"
-              headingRef={stepHeadingRef}
-              intro={<p>Le délai influe sur l’organisation du projet.</p>}
-            />
-            <fieldset className="mt-6 flex flex-col gap-3">
+          <section
+            aria-labelledby="timeline-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Dernière étape
+              </p>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="timeline-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Idéalement pour quand ?
+              </h1>
+            </div>
+            <fieldset className="mt-8 flex flex-col gap-[0.8125rem]">
               <legend className="sr-only">Délai souhaité</legend>
               {timelines.map((option) => (
                 <label
-                  className="relative cursor-pointer rounded-2xl border border-[#1e2324] bg-white px-5 py-[1.125rem] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3"
+                  className="relative cursor-pointer rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.4375rem] py-[1.3125rem] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3"
                   key={option.value}
                 >
                   <input
@@ -526,131 +1035,287 @@ export function QuoteRequestFlow() {
                     type="radio"
                     value={option.value}
                   />
-                  <span className="block font-heading text-base font-bold">
-                    {option.label}
-                  </span>
-                  <span className="mt-0.5 block text-[0.84375rem] text-[#7a7e79]">
-                    {option.description}
+                  <span className="block">
+                    <span className="flex flex-wrap items-center gap-[0.5625rem]">
+                      <span className="font-heading text-[1.1875rem] leading-normal font-bold">
+                        {option.label}
+                      </span>
+                      {option.emphasis && (
+                        <span className="font-meta text-xs font-bold text-[#f0606f]">
+                          {option.emphasis}
+                        </span>
+                      )}
+                    </span>
+                    {option.description && (
+                      <span className="mt-[0.17375rem] block text-[0.84375rem] leading-[1.45] text-[#1f2a28]">
+                        {option.description}
+                      </span>
+                    )}
                   </span>
                   {timeline === option.value && (
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute -inset-0.5 rounded-2xl border-[2.5px] border-[#f0606f]"
+                      className="pointer-events-none absolute -inset-0.5 rounded-[1.125rem] border-[2.5px] border-[#f0606f]"
                     />
                   )}
                 </label>
               ))}
             </fieldset>
-            <div className="mt-[1.625rem] border-t border-dotted border-[#1e2324] pt-[1.375rem]">
-              <label
-                className="mb-1.5 flex items-baseline justify-between gap-4 text-[0.9375rem] font-semibold"
-                htmlFor="budget"
-              >
-                <span>
-                  Budget indicatif{' '}
-                  <span className="font-normal text-[#7a7e79]">
-                    (optionnel)
-                  </span>
-                </span>
-                <output className="font-bold text-[#f0606f]">
-                  {budgetLabel}
-                </output>
-              </label>
-              <input
-                className="h-11 w-full accent-[#f0606f]"
-                id="budget"
-                max="10000"
-                min="0"
-                onChange={(event) =>
-                  setBudgetEuros(Number.parseInt(event.target.value, 10))
-                }
-                step="250"
-                type="range"
-                value={budgetEuros}
-              />
-              <div
-                aria-hidden="true"
-                className="flex justify-between text-xs text-[#7a7e79]"
-              >
-                <span>Non précisé</span>
-                <span>10 000 € +</span>
-              </div>
-              <p className="mt-3 text-[0.8125rem] leading-normal text-[#6e726e]">
-                Le budget sert uniquement à qualifier votre demande et ne
-                modifie pas l’estimation.
-              </p>
-            </div>
           </section>
         )}
 
         {step === 'summary' && (
-          <section aria-labelledby="summary-heading">
-            <div className="relative overflow-hidden rounded-[1.625rem] bg-[#1f2a28] px-6 py-8 text-white sm:px-8">
-              <span
-                aria-hidden="true"
-                className="absolute -end-[1.875rem] -top-[1.875rem] size-40 rounded-full bg-[#f0606f]/20"
-              />
-              <p className="relative text-[0.8125rem] font-semibold tracking-[0.05em] text-[#f0606f] uppercase">
+          <section
+            aria-labelledby="summary-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div className="rounded-[1.25rem] bg-[#1f2a28] px-5 py-8 text-white sm:px-[2.8125rem] sm:py-[2.75rem]">
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
                 Votre estimation
               </p>
               <h1
-                className="quote-price-pop relative mt-2.5 font-heading text-[clamp(2.5rem,10vw,3.25rem)] font-bold tracking-[-0.03em]"
+                className="quote-price-pop mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
                 id="summary-heading"
                 ref={stepHeadingRef}
                 tabIndex={-1}
               >
                 {formatEuros(estimate.lowCents)}
               </h1>
-              <p className="relative mt-1.5 max-w-[46ch] text-[0.90625rem] leading-normal text-[#b9beb9]">
-                Design facturé sur une base de 450 € / jour. Hors frais
-                externes, notamment l’impression et les banques d’images.
+              <p className="mt-[0.875rem] text-base leading-6">
+                Design facturés au tarif (450 € / jour),
+                <br />
+                Développement facturés au tarif (450 € / TTC jour),
+                développement inclus dans chaque estimation de site.
+                <br />
+                Hors frais externes (impression, hébergement, maintenance,
+                banque d’images).
               </p>
             </div>
 
-            <div className="mt-6 rounded-[1.25rem] border border-[#1e2324] bg-white px-[1.375rem] py-2">
+            <div className="mt-8 overflow-hidden rounded-[1.125rem] border border-[#c7c7c7] bg-white">
               {estimate.lines.map((line) => (
                 <div
-                  className="flex items-start gap-3.5 border-b border-[#eeebe3] py-[0.9375rem]"
+                  className="flex items-start gap-4 border-b border-[#c7c7c7] px-[1.375rem] pt-5 pb-[1.3125rem]"
                   key={line.label}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-[0.96875rem] font-semibold">
+                    <p className="font-heading text-[1.1875rem] leading-normal font-bold">
                       {line.label}
                     </p>
-                    <p className="mt-0.5 text-[0.8125rem] text-[#7a7e79]">
-                      {line.detail}
+                    <p className="mt-[0.17375rem] text-[0.84375rem] leading-[1.45] text-[#1f2a28]">
+                      {line.label === 'Formule création'
+                        ? 'Création de logo et charte graphique'
+                        : line.detail}
                     </p>
                   </div>
-                  <p className="shrink-0 text-[0.96875rem] font-bold">
+                  <p className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
                     {formatEuros(line.amountCents)}
                   </p>
                 </div>
               ))}
               {estimate.expressSurchargeCents > 0 && (
-                <div className="flex justify-between gap-3 border-b border-[#eeebe3] py-[0.9375rem] text-[0.96875rem] font-bold text-[#f0606f]">
-                  <p>Majoration express (+25 %)</p>
-                  <p>{formatEuros(estimate.expressSurchargeCents)}</p>
+                <div className="flex items-start gap-4 border-b border-[#c7c7c7] px-[1.375rem] pt-5 pb-[1.3125rem]">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-heading text-[1.1875rem] leading-normal font-bold">
+                      Majoration express (+20 %)
+                    </p>
+                    <p className="mt-[0.17375rem] text-[0.84375rem] leading-[1.45] text-[#1f2a28]">
+                      Priorisation du planning
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
+                    {formatEuros(estimate.expressSurchargeCents)}
+                  </p>
                 </div>
               )}
-              <div className="flex items-center justify-between gap-3 py-4 text-lg font-bold">
-                <p>Total estimé</p>
-                <p>{formatEuros(estimate.lowCents)}</p>
+              <div className="flex items-center justify-between gap-4 bg-[#ffdcdf] px-[1.375rem] pt-5 pb-[1.3125rem]">
+                <p className="font-heading text-[1.1875rem] leading-normal font-bold">
+                  TOTAL ESTIMÉ
+                </p>
+                <p className="shrink-0 font-meta text-[0.9375rem] font-bold">
+                  {formatEuros(estimate.lowCents)}
+                </p>
               </div>
             </div>
 
-            <aside className="mt-[1.125rem] flex items-start gap-2.5 rounded-[0.875rem] bg-[#e7e8f2] px-[1.0625rem] py-[0.9375rem]">
-              <span aria-hidden="true">💡</span>
-              <p className="text-[0.84375rem] leading-normal text-[#454b57]">
-                Il s’agit d’une estimation indicative, à peaufiner ensemble lors
-                d’un échange. Elle ne constitue pas un devis contractuel.
+            <p className="mt-8 text-base leading-6">
+              <span className="block">
+                💡 Ce sont des fourchettes de prix indicatives, à peaufiner
+                ensemble lors d’un échange.
+              </span>
+              <span className="block">
+                Je m’entoure de partenaires de confiance (développement,
+                impression, SEO, rédaction de contenu, vidéaste,
+                photographe…) pour vous accompagner sur l’ensemble de votre
+                projet.
+              </span>
+            </p>
+          </section>
+        )}
+
+        {step === 'contact' && (
+          <section
+            aria-labelledby="contact-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Dernière étape
               </p>
-            </aside>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="contact-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Où vous envoyer le détail ?
+              </h1>
+              <p className="mt-1 text-base leading-6">
+                Je récupère votre demande et reviens vers vous sous 48h avec
+                un devis personnalisé.
+              </p>
+            </div>
+
+            {submissionStatus === 'failed' && (
+              <div
+                className="mt-6 rounded-[0.875rem] border border-[#f0606f] bg-white px-4 py-3.5 text-[0.9375rem] leading-normal"
+                role="alert"
+              >
+                <p className="font-semibold">L’envoi n’a pas abouti.</p>
+                <p className="mt-1 text-[#5f6561]">{submissionError}</p>
+              </div>
+            )}
+
+            <form
+              className="mt-8 grid grid-cols-1 gap-[1.25rem] sm:grid-cols-2"
+              id="quote-request-contact-form"
+              noValidate
+              onSubmit={submitQuoteRequest}
+            >
+              <TextInput
+                autoComplete="name"
+                error={contactErrors.fullName}
+                label="Nom complet"
+                name="fullName"
+                onChange={(event) =>
+                  updateContactDetails('fullName', event.target.value)
+                }
+                placeholder="Votre nom"
+                required
+                value={contactDetails.fullName}
+              />
+              <TextInput
+                autoComplete="email"
+                error={contactErrors.email}
+                label="E-mail"
+                name="email"
+                onChange={(event) =>
+                  updateContactDetails('email', event.target.value)
+                }
+                placeholder="votre@email.com"
+                required
+                type="email"
+                value={contactDetails.email}
+              />
+              <TextInput
+                autoComplete="tel"
+                error={contactErrors.phone}
+                label="Téléphone"
+                name="phone"
+                onChange={(event) =>
+                  updateContactDetails('phone', event.target.value)
+                }
+                placeholder="06 …"
+                type="tel"
+                value={contactDetails.phone}
+              />
+              <TextInput
+                autoComplete="organization"
+                error={contactErrors.companyName}
+                label="Entreprise"
+                name="companyName"
+                onChange={(event) =>
+                  updateContactDetails('companyName', event.target.value)
+                }
+                placeholder="Optionnel"
+                value={contactDetails.companyName}
+              />
+              <div className="sm:col-span-2">
+                <TextInput
+                  autoComplete="url"
+                  error={contactErrors.websiteUrl}
+                  label="Site web actuel (si vous en avez un)"
+                  name="websiteUrl"
+                  onChange={(event) =>
+                    updateContactDetails('websiteUrl', event.target.value)
+                  }
+                  placeholder="https://…"
+                  type="url"
+                  value={contactDetails.websiteUrl}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Textarea
+                  error={contactErrors.projectDescription}
+                  label="Un mot sur votre projet"
+                  name="projectDescription"
+                  onChange={(event) =>
+                    updateContactDetails('projectDescription', event.target.value)
+                  }
+                  placeholder="Contexte, inspirations, contraintes…"
+                  required
+                  rows={4}
+                  value={contactDetails.projectDescription}
+                />
+              </div>
+
+              <div className="sm:col-span-2 flex items-center justify-between gap-4 rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.375rem] py-[1.3125rem]">
+                <p className="text-[0.8125rem] font-semibold text-[#5f6561]">
+                  Estimation jointe à votre demande
+                </p>
+                <p className="shrink-0 font-heading text-lg font-bold">
+                  {formatEuros(estimate.lowCents)}
+                </p>
+              </div>
+
+              <p className="sm:col-span-2 text-[0.8125rem] leading-normal text-[#5f6561]">
+                Vos informations sont utilisées uniquement pour traiter votre
+                demande et sont conservées trois ans après notre dernier
+                contact.{' '}
+                <a
+                  className="font-semibold text-[#f0606f] underline underline-offset-2"
+                  href="/politique-de-confidentialite"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Lire la politique de confidentialité
+                  <span className="sr-only"> (nouvel onglet)</span>
+                </a>
+                .
+              </p>
+            </form>
           </section>
         )}
       </div>
 
-      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#d4e0f5] bg-[#f0f4ff]/90 backdrop-blur-[10px]">
-        <div className="mx-auto flex max-w-[47.5rem] items-center gap-3.5 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+      <footer
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-20 border-t border-[#d4e0f5] bg-[#f0f4ff]/90 backdrop-blur-[5px]',
+          isIntro || isDomains || isBranding || isTimeline || isSummary || isContact
+            ? 'pt-[1.3125rem] pb-[2.1875rem]'
+            : '',
+        )}
+      >
+        <div
+          className={cn(
+            'mx-auto flex items-center gap-3.5',
+            isIntro
+              ? 'max-w-[67.5rem] justify-end px-5 sm:px-8 lg:px-12 xl:px-0'
+              : isDomains || isBranding || isTimeline || isSummary || isContact
+                ? 'max-w-[67.5rem] px-5 sm:px-8 lg:px-12 xl:px-0'
+                : 'max-w-[47.5rem] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6',
+          )}
+        >
           {step !== 'intro' && (
             <Button
               className="border-[#1e2324] bg-transparent px-[1.375rem] text-[#1f2a28] opacity-100"
@@ -661,13 +1326,40 @@ export function QuoteRequestFlow() {
             </Button>
           )}
           <span className="flex-1" />
-          {step !== 'summary' && (
+          {step !== 'contact' && (
             <Button
-              className="px-[1.875rem] active:scale-[0.96] motion-reduce:transform-none"
+              className={cn(
+                'px-[1.875rem] active:scale-[0.96] motion-reduce:transform-none',
+                (isIntro ||
+                  isDomains ||
+                  isBranding ||
+                  isTimeline ||
+                  isSummary ||
+                  isContact) &&
+                  'min-h-[2.6875rem] px-[1.875rem] py-0 font-body text-[0.9375rem] font-bold',
+              )}
               disabled={!canContinue}
               onClick={next}
             >
-              {step === 'intro' ? 'Commencer' : 'Continuer'}
+              {step === 'intro'
+                ? 'Commencer'
+                : step === 'summary'
+                  ? 'Recevoir mon devis détaillé →'
+                  : 'Continuer'}
+            </Button>
+          )}
+          {step === 'contact' && (
+            <Button
+              className="px-[1.875rem] active:scale-[0.96] motion-reduce:transform-none"
+              disabled={submissionStatus === 'submitting'}
+              form="quote-request-contact-form"
+              type="submit"
+            >
+              {submissionStatus === 'submitting'
+                ? 'Envoi en cours…'
+                : submissionStatus === 'failed'
+                  ? 'Réessayer'
+                  : 'Envoyer ma demande'}
             </Button>
           )}
         </div>

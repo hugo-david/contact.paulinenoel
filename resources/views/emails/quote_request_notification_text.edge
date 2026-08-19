@@ -1,0 +1,23 @@
+Nouvelle demande de devis
+
+Coordonnées
+Nom : {{ quoteRequest.fullName }}
+E-mail : {{ quoteRequest.email }}
+Téléphone : {{ quoteRequest.phone || 'Non renseigné' }}
+Entreprise : {{ quoteRequest.companyName || 'Non renseignée' }}
+Site web : {{ quoteRequest.websiteUrl || 'Non renseigné' }}
+
+Projet
+{{ quoteRequest.projectDescription }}
+
+Délai : {{ quoteRequest.desiredTimeline }}
+
+Sélection enregistrée
+Identité & branding : {{ quoteRequest.selections.branding.formula }}
+
+Estimation enregistrée
+@each(line in quoteRequest.estimateLines)
+- {{ line.label }} — {{ line.detail }} : {{ Math.round(line.amountCents / 100).toLocaleString('fr-FR') }} €
+@endeach
+
+Total : {{ Math.round(quoteRequest.estimateLowCents / 100).toLocaleString('fr-FR') }} €@if(quoteRequest.estimateHighCents !== quoteRequest.estimateLowCents) à {{ Math.round(quoteRequest.estimateHighCents / 100).toLocaleString('fr-FR') }} €@endif

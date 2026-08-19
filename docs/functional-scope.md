@@ -53,7 +53,7 @@ Le parcours couvre les quatre familles suivantes et leurs branches conditionnell
 1. Une introduction explique le principe de la demande.
 2. Le prospect sélectionne une ou plusieurs familles de prestations : identité de marque, web, imprimé et digital.
 3. Le parcours n’affiche que les étapes utiles aux familles choisies et recueille leurs options.
-4. Le prospect indique son délai souhaité et son budget.
+4. Le prospect indique son délai souhaité.
 5. Un récapitulatif présente les choix et une estimation indicative, mise à jour selon les prestations sélectionnées.
 6. Le prospect renseigne ses coordonnées et une description de son projet.
 7. Après une soumission réussie, un écran de confirmation est affiché.
@@ -64,7 +64,7 @@ Le prospect peut revenir à une étape précédente sans perdre ses réponses. L
 
 - L’estimation est affichée pendant le parcours et dans le récapitulatif.
 - Elle est explicitement présentée comme indicative, donc non contractuelle.
-- Elle est calculée à partir des prestations et options ; le budget sert uniquement à qualifier la demande. Le délai `express` applique une majoration fixe de 25 % ; les délais `flexible` et `normal` ne modifient pas le calcul.
+- Elle est calculée à partir des prestations et options. Le délai `express` applique une majoration fixe de 20 % ; les délais `flexible` et `normal` ne modifient pas le calcul.
 - Les prestations sur mesure restent signalées comme telles plutôt que chiffrées artificiellement.
 - Les tarifs sont maintenus dans une configuration technique ; aucune interface d’administration n’est prévue pour les modifier.
 
@@ -74,7 +74,7 @@ Champs requis : nom, e-mail valide et description du projet (« Un mot sur votre
 
 Champs facultatifs : téléphone, entreprise et site web.
 
-La demande comprend également toutes les sélections, son estimation, son délai et son budget indicatif.
+La demande comprend également toutes les sélections, son estimation et son délai.
 
 Les sélections et l’estimation sont conservées telles qu’elles ont été présentées lors de la soumission ; une évolution ultérieure des tarifs ne modifie jamais une demande existante.
 

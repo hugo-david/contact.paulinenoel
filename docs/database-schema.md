@@ -14,7 +14,6 @@ Une seule table porte l’agrégat **demande enregistrée**. Ce choix correspond
 | `website_url` | `text` | facultatif | Site web fourni par le prospect. |
 | `project_description` | `text` | requis | Description libre du projet. |
 | `desired_timeline` | `text` | requis | Délai souhaité (`flexible`, `normal` ou `express`). |
-| `budget_cents` | `integer` | facultatif | Budget indicatif en centimes d’euro ; `NULL` signifie « non précisé ». |
 | `selections` | `jsonb` | requis | Instantané des prestations, options et quantités choisies. |
 | `estimate_lines` | `jsonb` | requis | Instantané des lignes d’estimation affichées. |
 | `estimate_low_cents` | `integer` | requis, ≥ 0 | Borne basse de l’estimation en centimes d’euro. |

@@ -5,7 +5,7 @@ Une application publique qui recueille les besoins d’un prospect, produit une 
 ## Langage
 
 **Demande de devis** :
-Le parcours guidé par lequel un prospect décrit ses besoins, son délai et son budget avant de laisser ses coordonnées.
+Le parcours guidé par lequel un prospect décrit ses besoins et son délai avant de laisser ses coordonnées.
 _Éviter_ : constructeur de formulaire, compte client
 
 **Estimation indicative** :
@@ -29,16 +29,12 @@ L’ensemble des familles, prestations, options et quantités choisies dans une 
 _Éviter_ : commande, panier
 
 **Qualification de la demande** :
-Le délai souhaité et le budget indicatif renseignés par le prospect pour donner du contexte à Pauline.
+Le délai souhaité renseigné par le prospect pour donner du contexte à Pauline.
 _Éviter_ : validation commerciale
 
 **Délai souhaité** :
 L’horizon déclaré par le prospect pour son projet : flexible, normal ou express.
 _Éviter_ : date de livraison garantie, engagement de délai
-
-**Budget indicatif** :
-Le montant éventuellement déclaré par le prospect pour donner un ordre de grandeur à son projet ; il ne constitue pas un prix accepté.
-_Éviter_ : devis accepté, plafond contractuel
 
 **Prospect** :
 La personne ou l’organisation qui remplit une demande de devis.
