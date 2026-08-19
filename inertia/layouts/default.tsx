@@ -26,11 +26,6 @@ export default function Layout({
 
   return (
     <>
-      <header>
-        <div>
-          <div></div>
-        </div>
-      </header>
       <main>{children}</main>
       <Toaster position="top-center" richColors />
     </>
