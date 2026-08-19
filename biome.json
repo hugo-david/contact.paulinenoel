@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/.adonisjs"],
+    "includes": ["**", "!!**/.adonisjs", "!!docs/reference"],
     "ignoreUnknown": false
   },
   "formatter": {
@@ -24,6 +24,11 @@
     "formatter": {
       "quoteStyle": "single",
       "semicolons": "asNeeded"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   },
   "assist": {

@@ -7,6 +7,78 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import type { DateTime } from 'luxon'
 
+export class QuoteRequestSchema extends BaseModel {
+  static $columns = [
+    'budgetCents',
+    'companyName',
+    'createdAt',
+    'currency',
+    'desiredTimeline',
+    'email',
+    'estimateHighCents',
+    'estimateLines',
+    'estimateLowCents',
+    'fullName',
+    'id',
+    'lastContactAt',
+    'notificationAttemptedAt',
+    'notificationError',
+    'notificationSentAt',
+    'notificationStatus',
+    'phone',
+    'projectDescription',
+    'purgeAfter',
+    'selections',
+    'updatedAt',
+    'websiteUrl',
+  ] as const
+  $columns = QuoteRequestSchema.$columns
+  @column()
+  declare budgetCents: number | null
+  @column()
+  declare companyName: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column()
+  declare desiredTimeline: string
+  @column()
+  declare email: string
+  @column()
+  declare estimateHighCents: number
+  @column()
+  declare estimateLines: unknown
+  @column()
+  declare estimateLowCents: number
+  @column()
+  declare fullName: string
+  @column({ isPrimary: true })
+  declare id: bigint | number
+  @column.dateTime()
+  declare lastContactAt: DateTime
+  @column.dateTime()
+  declare notificationAttemptedAt: DateTime | null
+  @column()
+  declare notificationError: string | null
+  @column.dateTime()
+  declare notificationSentAt: DateTime | null
+  @column()
+  declare notificationStatus: string
+  @column()
+  declare phone: string | null
+  @column()
+  declare projectDescription: string
+  @column.dateTime()
+  declare purgeAfter: DateTime
+  @column()
+  declare selections: unknown
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare websiteUrl: string | null
+}
+
 export class UserSchema extends BaseModel {
   static $columns = [
     'createdAt',
