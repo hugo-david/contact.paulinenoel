@@ -2,7 +2,10 @@ import { authBrowserClient } from '@adonisjs/auth/plugins/browser_client'
 import app from '@adonisjs/core/services/app'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { dbAssertions } from '@adonisjs/lucid/plugins/db'
+import { sessionApiClient } from '@adonisjs/session/plugins/api_client'
 import { sessionBrowserClient } from '@adonisjs/session/plugins/browser_client'
+import { shieldApiClient } from '@adonisjs/shield/plugins/api_client'
+import { apiClient } from '@japa/api-client'
 import { assert } from '@japa/assert'
 import { browserClient } from '@japa/browser-client'
 import { pluginAdonisJS } from '@japa/plugin-adonisjs'
@@ -18,7 +21,10 @@ import type { Config } from '@japa/runner/types'
  */
 export const plugins: Config['plugins'] = [
   assert(),
+  apiClient(),
   pluginAdonisJS(app),
+  sessionApiClient(app),
+  shieldApiClient(),
   dbAssertions(app),
   browserClient({ runInSuites: ['browser'] }),
   sessionBrowserClient(app),

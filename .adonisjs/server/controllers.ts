@@ -3,4 +3,6 @@
  * DO NOT EDIT manually
  */
 
-export const controllers = {}
+export const controllers = {
+  QuoteRequests: () => import('#controllers/quote_requests_controller'),
+}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+  <body style="font-family: Arial, sans-serif; color: #1f2a28; line-height: 1.5">
+    <h1>Nouvelle demande de devis</h1>
+
+    <h2>Coordonnées</h2>
+    <p>
+      <strong>Nom :</strong> {{ quoteRequest.fullName }}<br>
+      <strong>E-mail :</strong> {{ quoteRequest.email }}<br>
+      <strong>Téléphone :</strong> {{ quoteRequest.phone || 'Non renseigné' }}<br>
+      <strong>Entreprise :</strong> {{ quoteRequest.companyName || 'Non renseignée' }}<br>
+      <strong>Site web :</strong> {{ quoteRequest.websiteUrl || 'Non renseigné' }}
+    </p>
+
+    <h2>Projet</h2>
+    <p>{{ quoteRequest.projectDescription }}</p>
+    <p>
+      <strong>Délai :</strong> {{ quoteRequest.desiredTimeline }}
+    </p>
+
+    <h2>Sélection enregistrée</h2>
+    <p>Identité & branding : {{ quoteRequest.selections.branding.formula }}</p>
+
+    <h2>Estimation enregistrée</h2>
+    <ul>
+      @each(line in quoteRequest.estimateLines)
+        <li>
+          <strong>{{ line.label }}</strong> — {{ line.detail }} :
+          {{ Math.round(line.amountCents / 100).toLocaleString('fr-FR') }} €
+        </li>
+      @endeach
+    </ul>
+    <p>
+      <strong>Total :</strong>
+      {{ Math.round(quoteRequest.estimateLowCents / 100).toLocaleString('fr-FR') }} €
+      @if(quoteRequest.estimateHighCents !== quoteRequest.estimateLowCents)
+        à {{ Math.round(quoteRequest.estimateHighCents / 100).toLocaleString('fr-FR') }} €
+      @endif
+    </p>
+  </body>
+</html>

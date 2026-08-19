@@ -9,7 +9,6 @@ import type { DateTime } from 'luxon'
 
 export class QuoteRequestSchema extends BaseModel {
   static $columns = [
-    'budgetCents',
     'companyName',
     'createdAt',
     'currency',
@@ -34,8 +33,6 @@ export class QuoteRequestSchema extends BaseModel {
   ] as const
   $columns = QuoteRequestSchema.$columns
   @column()
-  declare budgetCents: number | null
-  @column()
   declare companyName: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -54,7 +51,7 @@ export class QuoteRequestSchema extends BaseModel {
   @column()
   declare fullName: string
   @column({ isPrimary: true })
-  declare id: bigint | number
+  declare id: number
   @column.dateTime()
   declare lastContactAt: DateTime
   @column.dateTime()

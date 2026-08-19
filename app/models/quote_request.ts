@@ -1,5 +1,10 @@
 import { column } from '@adonisjs/lucid/orm'
 import { QuoteRequestSchema } from '#database/schema'
+import type {
+  DesiredTimeline,
+  EstimateLine,
+  QuoteRequestSelections,
+} from '../../shared/quote-request/branding-estimate.js'
 
 function prepareJson(value: unknown) {
   return JSON.stringify(value)
@@ -7,8 +12,10 @@ function prepareJson(value: unknown) {
 
 export default class QuoteRequest extends QuoteRequestSchema {
   @column({ prepare: prepareJson })
-  declare selections: Record<string, unknown>
+  declare selections: QuoteRequestSelections
 
   @column({ prepare: prepareJson })
-  declare estimateLines: Array<Record<string, unknown>>
+  declare estimateLines: EstimateLine[]
+
+  declare desiredTimeline: DesiredTimeline
 }

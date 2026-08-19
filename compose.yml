@@ -11,5 +11,14 @@ services:
     volumes:
       - postgresql:/var/lib/postgresql/data
 
+  smtp4dev:
+    image: rnwood/smtp4dev:latest
+    ports:
+      - ${SMTP4DEV_WEB_PORT:-5001}:80
+      - ${SMTP_PORT:-1025}:25
+    volumes:
+      - smtp4dev:/smtp4dev
+
 volumes:
   postgresql:
+  smtp4dev:

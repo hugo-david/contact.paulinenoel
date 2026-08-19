@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client'
 import Layout from '~/layouts/default'
 import { client } from './client'
 
-const appName = import.meta.env.VITE_APP_NAME || 'AdonisJS'
+const appName = import.meta.env.VITE_APP_NAME || 'Pauline Noël'
 
 createInertiaApp({
   title: (title) => (title ? `${title} - ${appName}` : appName),

@@ -18,7 +18,7 @@ Demande enregistrée
 
 - Les **coordonnées de contact** portent le nom, l’e-mail et, si fournis, le téléphone, l’entreprise et le site web.
 - La **description du projet** est le message libre requis.
-- La **qualification** regroupe le délai et le budget indicatif. Le budget ne modifie pas le calcul ; le délai `express` applique une majoration fixe de 25 % à l’estimation.
+- Le **délai souhaité** précise l’horizon du projet. Le délai `express` applique une majoration fixe de 20 % à l’estimation.
 - La **sélection de prestations** conserve les choix, options et quantités effectués pendant le parcours.
 - L’**estimation enregistrée** conserve les lignes, montants et total tels qu’ils étaient affichés au prospect.
 - L’**état de notification** vaut `à envoyer`, `envoyée` ou `échouée`.

@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/.adonisjs", "!!docs/reference"],
+    "includes": [
+      "**",
+      "!!**/.adonisjs",
+      "!!docs/reference",
+      "!!inertia/assets/images/*.svg",
+      "!!public/favicon.svg"
+    ],
     "ignoreUnknown": false
   },
   "formatter": {
