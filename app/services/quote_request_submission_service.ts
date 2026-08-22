@@ -10,7 +10,7 @@ import type {
   QuoteRequestSelections,
 } from '../../shared/quote-request/branding-estimate.js'
 import {
-  calculateBrandingEstimate,
+  calculateQuoteEstimate,
   getEstimateSnapshotLines,
 } from '../../shared/quote-request/branding-estimate.js'
 
@@ -54,9 +54,14 @@ export default class QuoteRequestSubmissionService {
   constructor(private notificationService: QuoteRequestNotificationService) {}
 
   async submit(input: SubmitQuoteRequestInput) {
-    const estimate = calculateBrandingEstimate({
-      formula: input.selections.branding.formula,
+    if (!input.selections.branding && !input.selections.web) {
+      throw new QuoteRequestEstimateChangedError()
+    }
+
+    const estimate = calculateQuoteEstimate({
+      brandingFormula: input.selections.branding?.formula ?? null,
       timeline: input.desiredTimeline,
+      web: input.selections.web ?? null,
     })
     const estimateLines = getEstimateSnapshotLines(estimate)
     const presentedEstimate = input.estimate

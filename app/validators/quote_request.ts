@@ -17,9 +17,33 @@ export const storeQuoteRequestValidator = vine.create({
   projectDescription: vine.string().trim().minLength(1).maxLength(5_000),
   desiredTimeline: vine.enum(['flexible', 'normal', 'express']),
   selections: vine.object({
-    branding: vine.object({
-      formula: vine.enum(['refonte', 'mixte', 'creation']),
-    }),
+    branding: vine
+      .object({
+        formula: vine.enum(['refonte', 'mixte', 'creation']),
+      })
+      .optional(),
+    web: vine
+      .object({
+        features: vine.array(
+          vine.enum([
+            'blog',
+            'event',
+            'payment',
+            'booking',
+            'multilingual',
+            'memberArea',
+          ]),
+        ),
+        pages: vine.number().withoutDecimals().range([1, 40]),
+        type: vine.enum([
+          'showcase',
+          'ecommerce',
+          'landing',
+          'showcaseRedesign',
+          'landingRedesign',
+        ]),
+      })
+      .optional(),
   }),
   estimate: vine.object({
     highCents: vine.number().withoutDecimals().min(0),
