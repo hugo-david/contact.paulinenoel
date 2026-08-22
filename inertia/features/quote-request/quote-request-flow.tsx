@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import brandingDomainIcon from '~/assets/images/domain-branding.svg'
 import digitalDomainIcon from '~/assets/images/domain-digital.svg'
+import printDomainIcon from '~/assets/images/domain-print.svg'
 import webDomainIcon from '~/assets/images/domain-web.svg'
 import estimationDot from '~/assets/images/estimation-dot.svg'
 import paulineNoelLogo from '~/assets/images/pauline-noel-logo.svg'
@@ -12,6 +13,8 @@ import type {
   BrandingFormula,
   DesiredTimeline,
   EstimateLine,
+  PrintSelections,
+  PrintSupport,
   WebFeature,
   WebProjectType,
   WebSelections,
@@ -19,8 +22,10 @@ import type {
 import {
   brandingFormulas,
   calculateQuoteEstimate,
+  createPrintSelections,
   formatEuros,
   getEstimateSnapshotLines,
+  printSupports,
   webFeatures,
   webProjects,
 } from './branding-estimate'
@@ -31,6 +36,7 @@ type Step =
   | 'domains'
   | 'branding'
   | 'web'
+  | 'print'
   | 'timeline'
   | 'summary'
   | 'contact'
@@ -64,6 +70,8 @@ interface QuoteRequestDraft {
   formula: BrandingFormula | null
   step: Step
   timeline: DesiredTimeline | null
+  printSelected?: boolean
+  printSelections?: PrintSelections
   webSelected: boolean
   webSelections: WebSelections | null
 }
@@ -76,6 +84,10 @@ const initialWebSelections: WebSelections = {
 
 const webFeatureEntries = Object.entries(webFeatures) as Array<
   [WebFeature, string]
+>
+
+const printSupportEntries = Object.entries(printSupports) as Array<
+  [PrintSupport, (typeof printSupports)[PrintSupport]]
 >
 
 function formatEstimateLine(line: EstimateLine) {
@@ -162,6 +174,19 @@ function isWebSelections(value: unknown): value is WebSelections {
   )
 }
 
+function isPrintSelections(value: unknown): value is PrintSelections {
+  if (typeof value !== 'object' || value === null) return false
+
+  const selections = value as Record<string, unknown>
+  return Object.keys(printSupports).every(
+    (support) =>
+      typeof selections[support] === 'number' &&
+      Number.isInteger(selections[support]) &&
+      selections[support] >= 0 &&
+      selections[support] <= 20,
+  )
+}
+
 function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
   if (typeof value !== 'object' || value === null) return false
 
@@ -171,6 +196,7 @@ function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
     'domains',
     'branding',
     'web',
+    'print',
     'timeline',
     'summary',
     'contact',
@@ -183,7 +209,10 @@ function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
     isStep &&
     (draft.timeline === null || isDesiredTimeline(draft.timeline)) &&
     typeof draft.webSelected === 'boolean' &&
-    (draft.webSelections === null || isWebSelections(draft.webSelections))
+    (draft.webSelections === null || isWebSelections(draft.webSelections)) &&
+    (draft.printSelected === undefined ||
+      typeof draft.printSelected === 'boolean') &&
+    (draft.printSelections === undefined || isPrintSelections(draft.printSelections))
   )
 }
 
@@ -262,6 +291,10 @@ export function QuoteRequestFlow() {
   const [formula, setFormula] = useState<BrandingFormula | null>(null)
   const [webSelected, setWebSelected] = useState(false)
   const [webSelections, setWebSelections] = useState<WebSelections | null>(null)
+  const [printSelected, setPrintSelected] = useState(false)
+  const [printSelections, setPrintSelections] = useState<PrintSelections>(
+    createPrintSelections,
+  )
   const [timeline, setTimeline] = useState<DesiredTimeline | null>(null)
   const [contactDetails, setContactDetails] = useState<ContactDetails>(
     initialContactDetails,
@@ -278,6 +311,7 @@ export function QuoteRequestFlow() {
 
   const estimate = calculateQuoteEstimate({
     brandingFormula: brandingSelected ? formula : null,
+    print: printSelected ? printSelections : null,
     timeline: timeline ?? 'normal',
     web: webSelected ? webSelections : null,
   })
@@ -285,6 +319,7 @@ export function QuoteRequestFlow() {
     'domains',
     ...(brandingSelected ? (['branding'] as const) : []),
     ...(webSelected ? (['web'] as const) : []),
+    ...(printSelected ? (['print'] as const) : []),
     'timeline',
     'summary',
     'contact',
@@ -297,6 +332,7 @@ export function QuoteRequestFlow() {
   const isSummary = step === 'summary'
   const isTimeline = step === 'timeline'
   const isWeb = step === 'web'
+  const isPrint = step === 'print'
   const showCounter = workflowStepIndex >= 0
   const showLiveEstimate =
     estimate.lowCents > 0 && step !== 'intro' && step !== 'summary'
@@ -321,6 +357,8 @@ export function QuoteRequestFlow() {
       setTimeline(parsedDraft.timeline)
       setWebSelected(parsedDraft.webSelected)
       setWebSelections(parsedDraft.webSelections)
+      setPrintSelected(parsedDraft.printSelected ?? false)
+      setPrintSelections(parsedDraft.printSelections ?? createPrintSelections())
     } catch {
       removeQuoteRequestDraft()
     } finally {
@@ -337,6 +375,8 @@ export function QuoteRequestFlow() {
       formula !== null ||
       webSelected ||
       webSelections !== null ||
+      printSelected ||
+      Object.values(printSelections).some(Boolean) ||
       timeline !== null ||
       Object.values(contactDetails).some(Boolean)
 
@@ -353,6 +393,8 @@ export function QuoteRequestFlow() {
       timeline,
       webSelected,
       webSelections,
+      printSelected,
+      printSelections,
     }
 
     try {
@@ -373,6 +415,8 @@ export function QuoteRequestFlow() {
     timeline,
     webSelected,
     webSelections,
+    printSelected,
+    printSelections,
   ])
 
   useEffect(() => {
@@ -402,11 +446,13 @@ export function QuoteRequestFlow() {
 
   const canContinue =
     step === 'domains'
-      ? brandingSelected || webSelected
+      ? brandingSelected || webSelected || printSelected
       : step === 'branding'
         ? formula !== null
         : step === 'web'
           ? webSelections !== null
+          : step === 'print'
+            ? Object.values(printSelections).some((quantity) => quantity > 0)
           : step === 'timeline'
             ? timeline !== null
             : true
@@ -465,6 +511,13 @@ export function QuoteRequestFlow() {
     })
   }
 
+  const updatePrintQuantity = (support: PrintSupport, quantity: number) => {
+    setPrintSelections((current) => ({
+      ...current,
+      [support]: Math.max(0, Math.min(20, quantity)),
+    }))
+  }
+
   const validateContactDetails = () => {
     const errors: Partial<Record<ContactField, string>> = {}
 
@@ -508,9 +561,11 @@ export function QuoteRequestFlow() {
     if (
       submissionStatus === 'submitting' ||
       !timeline ||
-      (!brandingSelected && !webSelected)
-    )
-      if (!validateContactDetails()) return
+      (!brandingSelected && !webSelected && !printSelected)
+    ) {
+      return
+    }
+    if (!validateContactDetails()) return
 
     setSubmissionStatus('submitting')
     setSubmissionError('')
@@ -527,6 +582,7 @@ export function QuoteRequestFlow() {
         selections: {
           ...(brandingSelected && formula ? { branding: { formula } } : {}),
           ...(webSelected && webSelections ? { web: webSelections } : {}),
+          ...(printSelected ? { print: printSelections } : {}),
         },
       })
       setSubmissionStatus('sent')
@@ -576,6 +632,8 @@ export function QuoteRequestFlow() {
     setFormula(null)
     setWebSelected(false)
     setWebSelections(null)
+    setPrintSelected(false)
+    setPrintSelections(createPrintSelections())
     setTimeline(null)
     setContactDetails(initialContactDetails)
     setContactErrors({})
@@ -688,7 +746,7 @@ export function QuoteRequestFlow() {
             </div>
           </div>
         </header>
-      ) : isBranding || isWeb ? (
+      ) : isBranding || isWeb || isPrint ? (
         <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
           <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
             <div className="flex items-center justify-between gap-4">
@@ -864,6 +922,7 @@ export function QuoteRequestFlow() {
             : isDomains ||
                 isBranding ||
                 isWeb ||
+                isPrint ||
                 isTimeline ||
                 isSummary ||
                 isContact
@@ -976,18 +1035,22 @@ export function QuoteRequestFlow() {
                 }}
               />
               <DomainCard
+                checked={printSelected}
                 description="Flyer, affiche, dépliant, carte de visite, plaquette commerciale, covering…"
-                disabled
                 icon={
                   <img
                     alt=""
                     className="h-[2.383125rem] w-[2.586125rem]"
                     height="38"
-                    src={webDomainIcon}
+                    src={printDomainIcon}
                     width="41"
                   />
                 }
                 label="Supports de com. imprimés"
+                onChange={(checked) => {
+                  setPrintSelected(checked)
+                  if (!checked) setPrintSelections(createPrintSelections())
+                }}
               />
               <DomainCard
                 description="Newsletter, posts réseaux sociaux, signature, slides pptx"
@@ -1288,6 +1351,91 @@ export function QuoteRequestFlow() {
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {step === 'print' && (
+          <section
+            aria-labelledby="print-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Supports de com. imprimés
+              </p>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="print-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Quels supports imprimés ?
+              </h1>
+              <p className="mt-[0.875rem] text-base leading-6">
+                Ajustez les quantités souhaitées.
+              </p>
+            </div>
+
+            <ul className="mt-8 flex flex-col gap-[0.8125rem]">
+              {printSupportEntries.map(([support, definition]) => {
+                const quantity = printSelections[support]
+                return (
+                  <li
+                    className={cn(
+                      'flex items-center gap-4 rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.4375rem] py-[1.3125rem]',
+                      quantity > 0 && 'border-[#f0606f]',
+                    )}
+                    key={support}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-heading text-[1.1875rem] leading-normal font-bold">
+                          {definition.label}
+                        </h2>
+                        <span className="font-meta text-xs text-[#a0a3a3]">
+                          {definition.duration}
+                        </span>
+                      </div>
+                      {support === 'brochure' && (
+                        <p className="mt-0.5 font-meta text-xs text-[#a0a3a3]">
+                          option page en plus : 225 € · 0,5 jour
+                        </p>
+                      )}
+                    </div>
+                    <p className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
+                      {formatEuros(definition.priceCents)}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-[0.6875rem] rounded-full bg-[#e9edf6] px-[0.5625rem] py-[0.375rem]">
+                      <button
+                        aria-label={`Retirer un exemplaire de ${definition.label}`}
+                        className="flex size-[1.5835rem] items-center justify-center rounded-full bg-white text-[1.0625rem] text-[#1f2a28] disabled:opacity-40"
+                        disabled={quantity === 0}
+                        onClick={() => updatePrintQuantity(support, quantity - 1)}
+                        type="button"
+                      >
+                        −
+                      </button>
+                      <output className="min-w-6 text-center font-body text-[0.9375rem] font-semibold">
+                        {quantity}
+                      </output>
+                      <button
+                        aria-label={`Ajouter un exemplaire de ${definition.label}`}
+                        className="flex size-[1.5835rem] items-center justify-center rounded-full bg-[#1f2a28] text-[1.0625rem] text-white disabled:opacity-40"
+                        disabled={quantity === 20}
+                        onClick={() => updatePrintQuantity(support, quantity + 1)}
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <p className="mt-3 text-right text-sm text-[#1f2a28]/70">
+              Base&nbsp;: 450&nbsp;€ / jour.
+            </p>
           </section>
         )}
 
@@ -1596,6 +1744,7 @@ export function QuoteRequestFlow() {
             isDomains ||
             isBranding ||
             isWeb ||
+            isPrint ||
             isTimeline ||
             isSummary ||
             isContact
@@ -1611,6 +1760,7 @@ export function QuoteRequestFlow() {
               : isDomains ||
                   isBranding ||
                   isWeb ||
+                  isPrint ||
                   isTimeline ||
                   isSummary ||
                   isContact
@@ -1636,6 +1786,7 @@ export function QuoteRequestFlow() {
                   isDomains ||
                   isBranding ||
                   isWeb ||
+                  isPrint ||
                   isTimeline ||
                   isSummary ||
                   isContact) &&

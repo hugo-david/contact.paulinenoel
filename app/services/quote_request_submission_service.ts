@@ -54,12 +54,21 @@ export default class QuoteRequestSubmissionService {
   constructor(private notificationService: QuoteRequestNotificationService) {}
 
   async submit(input: SubmitQuoteRequestInput) {
-    if (!input.selections.branding && !input.selections.web) {
+    const hasPrintSelection =
+      input.selections.print !== undefined &&
+      Object.values(input.selections.print).some((quantity) => quantity > 0)
+
+    if (
+      !input.selections.branding &&
+      !input.selections.web &&
+      !hasPrintSelection
+    ) {
       throw new QuoteRequestEstimateChangedError()
     }
 
     const estimate = calculateQuoteEstimate({
       brandingFormula: input.selections.branding?.formula ?? null,
+      print: input.selections.print ?? null,
       timeline: input.desiredTimeline,
       web: input.selections.web ?? null,
     })

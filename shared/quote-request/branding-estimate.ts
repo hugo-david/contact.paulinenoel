@@ -13,6 +13,17 @@ export type WebFeature =
   | 'booking'
   | 'multilingual'
   | 'memberArea'
+export type PrintSupport =
+  | 'flyer'
+  | 'poster'
+  | 'brochure'
+  | 'businessCard'
+  | 'rollup'
+  | 'banner'
+  | 'fullWrap'
+  | 'signage'
+  | 'letterhead'
+  | 'goodies'
 
 interface BrandingFormulaDefinition {
   description: string
@@ -72,12 +83,60 @@ export interface QuoteRequestSelections {
     formula: BrandingFormula
   }
   web?: WebSelections
+  print?: PrintSelections
 }
 
 export interface WebSelections {
   features: WebFeature[]
   pages: number
   type: WebProjectType
+}
+
+export type PrintSelections = Record<PrintSupport, number>
+
+interface PrintSupportDefinition {
+  duration: string
+  label: string
+  priceCents: number
+}
+
+export const printSupports = {
+  flyer: { label: 'Flyer', duration: '1 jour', priceCents: 45_000 },
+  poster: { label: 'Affiche', duration: '2 jours', priceCents: 90_000 },
+  brochure: {
+    label: 'Plaquette • dépliant • chemise (4 pages)',
+    duration: '2,5 jours',
+    priceCents: 112_500,
+  },
+  businessCard: {
+    label: 'Carte de visite',
+    duration: '2h',
+    priceCents: 12_800,
+  },
+  rollup: { label: 'Kakemono', duration: '1 jour', priceCents: 45_000 },
+  banner: { label: 'Bâche', duration: '1 jour', priceCents: 45_000 },
+  fullWrap: {
+    label: 'Covering total',
+    duration: '1 jour',
+    priceCents: 45_000,
+  },
+  signage: {
+    label: 'Enseigne / panneaux',
+    duration: '0,5 jour',
+    priceCents: 22_500,
+  },
+  letterhead: {
+    label: 'Lettre en-tête',
+    duration: '2h',
+    priceCents: 12_800,
+  },
+  goodies: { label: 'Goodies', duration: '2h', priceCents: 12_800 },
+} as const satisfies Record<PrintSupport, PrintSupportDefinition>
+
+export function createPrintSelections(): PrintSelections {
+  return Object.fromEntries(
+    Object.keys(printSupports).map((support) => [support, 0]),
+  ) as PrintSelections
 }
 
 interface WebProjectDefinition {
@@ -191,10 +250,12 @@ export function calculateBrandingEstimate({
 
 export function calculateQuoteEstimate({
   brandingFormula,
+  print,
   timeline,
   web,
 }: {
   brandingFormula: BrandingFormula | null
+  print: PrintSelections | null
   timeline: DesiredTimeline
   web: WebSelections | null
 }): BrandingEstimate {
@@ -233,6 +294,21 @@ export function calculateQuoteEstimate({
         amountCents: 0,
         detail: 'Chiffré sur-mesure avec le développeur',
         label: webFeatures[feature],
+      })
+    }
+  }
+
+  if (print) {
+    for (const [support, quantity] of Object.entries(print) as Array<
+      [PrintSupport, number]
+    >) {
+      if (quantity === 0) continue
+
+      const definition = printSupports[support]
+      lines.push({
+        amountCents: definition.priceCents * quantity,
+        detail: `${quantity} × ${formatEuros(definition.priceCents)}`,
+        label: definition.label,
       })
     }
   }

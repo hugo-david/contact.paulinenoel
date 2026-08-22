@@ -44,6 +44,20 @@ export const storeQuoteRequestValidator = vine.create({
         ]),
       })
       .optional(),
+    print: vine
+      .object({
+        flyer: vine.number().withoutDecimals().range([0, 20]),
+        poster: vine.number().withoutDecimals().range([0, 20]),
+        brochure: vine.number().withoutDecimals().range([0, 20]),
+        businessCard: vine.number().withoutDecimals().range([0, 20]),
+        rollup: vine.number().withoutDecimals().range([0, 20]),
+        banner: vine.number().withoutDecimals().range([0, 20]),
+        fullWrap: vine.number().withoutDecimals().range([0, 20]),
+        signage: vine.number().withoutDecimals().range([0, 20]),
+        letterhead: vine.number().withoutDecimals().range([0, 20]),
+        goodies: vine.number().withoutDecimals().range([0, 20]),
+      })
+      .optional(),
   }),
   estimate: vine.object({
     highCents: vine.number().withoutDecimals().min(0),
