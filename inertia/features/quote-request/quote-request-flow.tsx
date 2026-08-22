@@ -9,12 +9,29 @@ import estimationDot from '~/assets/images/estimation-dot.svg'
 import paulineNoelLogo from '~/assets/images/pauline-noel-logo.svg'
 import { Button, Textarea, TextInput } from '~/components/ui'
 import { cn } from '~/utils/cn'
-import type { BrandingFormula, DesiredTimeline } from './branding-estimate'
+import type {
+  BrandingFormula,
+  DesiredTimeline,
+  DigitalSelections,
+  DigitalSupport,
+  EstimateLine,
+  PrintSelections,
+  PrintSupport,
+  WebFeature,
+  WebProjectType,
+  WebSelections,
+} from './branding-estimate'
 import {
   brandingFormulas,
-  calculateBrandingEstimate,
+  calculateQuoteEstimate,
+  createDigitalSelections,
+  createPrintSelections,
+  digitalSupports,
   formatEuros,
   getEstimateSnapshotLines,
+  printSupports,
+  webFeatures,
+  webProjects,
 } from './branding-estimate'
 import './quote-request-flow.css'
 
@@ -22,17 +39,12 @@ type Step =
   | 'intro'
   | 'domains'
   | 'branding'
+  | 'web'
+  | 'print'
+  | 'digital'
   | 'timeline'
   | 'summary'
   | 'contact'
-
-const workflowSteps: Step[] = [
-  'domains',
-  'branding',
-  'timeline',
-  'summary',
-  'contact',
-]
 
 interface ContactDetails {
   companyName: string
@@ -63,6 +75,34 @@ interface QuoteRequestDraft {
   formula: BrandingFormula | null
   step: Step
   timeline: DesiredTimeline | null
+  printSelected?: boolean
+  printSelections?: PrintSelections
+  digitalSelected?: boolean
+  digitalSelections?: DigitalSelections
+  webSelected: boolean
+  webSelections: WebSelections | null
+}
+
+const initialWebSelections: WebSelections = {
+  features: [],
+  pages: 4,
+  type: 'showcase',
+}
+
+const webFeatureEntries = Object.entries(webFeatures) as Array<
+  [WebFeature, string]
+>
+
+const printSupportEntries = Object.entries(printSupports) as Array<
+  [PrintSupport, (typeof printSupports)[PrintSupport]]
+>
+
+const digitalSupportEntries = Object.entries(digitalSupports) as Array<
+  [DigitalSupport, (typeof digitalSupports)[DigitalSupport]]
+>
+
+function formatEstimateLine(line: EstimateLine) {
+  return line.amountCents === 0 ? 'sur-mesure' : formatEuros(line.amountCents)
 }
 
 const introBenefits = [
@@ -122,6 +162,51 @@ function isDesiredTimeline(value: unknown): value is DesiredTimeline {
   return value === 'flexible' || value === 'normal' || value === 'express'
 }
 
+function isWebProjectType(value: unknown): value is WebProjectType {
+  return Object.hasOwn(webProjects, value as WebProjectType)
+}
+
+function isWebFeature(value: unknown): value is WebFeature {
+  return Object.hasOwn(webFeatures, value as WebFeature)
+}
+
+function isWebSelections(value: unknown): value is WebSelections {
+  if (typeof value !== 'object' || value === null) return false
+
+  const selections = value as Record<string, unknown>
+  return (
+    Array.isArray(selections.features) &&
+    selections.features.every(isWebFeature) &&
+    typeof selections.pages === 'number' &&
+    Number.isInteger(selections.pages) &&
+    selections.pages >= 1 &&
+    selections.pages <= 40 &&
+    isWebProjectType(selections.type)
+  )
+}
+
+function isPrintSelections(value: unknown): value is PrintSelections {
+  if (typeof value !== 'object' || value === null) return false
+
+  const selections = value as Record<string, unknown>
+  return Object.keys(printSupports).every(
+    (support) =>
+      typeof selections[support] === 'number' &&
+      Number.isInteger(selections[support]) &&
+      selections[support] >= 0 &&
+      selections[support] <= 20,
+  )
+}
+
+function isDigitalSelections(value: unknown): value is DigitalSelections {
+  if (typeof value !== 'object' || value === null) return false
+
+  const selections = value as Record<string, unknown>
+  return Object.keys(digitalSupports).every(
+    (support) => typeof selections[support] === 'boolean',
+  )
+}
+
 function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
   if (typeof value !== 'object' || value === null) return false
 
@@ -130,6 +215,9 @@ function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
     'intro',
     'domains',
     'branding',
+    'web',
+    'print',
+    'digital',
     'timeline',
     'summary',
     'contact',
@@ -140,7 +228,17 @@ function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
     isContactDetails(draft.contactDetails) &&
     (draft.formula === null || isBrandingFormula(draft.formula)) &&
     isStep &&
-    (draft.timeline === null || isDesiredTimeline(draft.timeline))
+    (draft.timeline === null || isDesiredTimeline(draft.timeline)) &&
+    typeof draft.webSelected === 'boolean' &&
+    (draft.webSelections === null || isWebSelections(draft.webSelections)) &&
+    (draft.printSelected === undefined ||
+      typeof draft.printSelected === 'boolean') &&
+    (draft.printSelections === undefined ||
+      isPrintSelections(draft.printSelections)) &&
+    (draft.digitalSelected === undefined ||
+      typeof draft.digitalSelected === 'boolean') &&
+    (draft.digitalSelections === undefined ||
+      isDigitalSelections(draft.digitalSelections))
   )
 }
 
@@ -217,6 +315,16 @@ export function QuoteRequestFlow() {
   const [step, setStep] = useState<Step>('intro')
   const [brandingSelected, setBrandingSelected] = useState(false)
   const [formula, setFormula] = useState<BrandingFormula | null>(null)
+  const [webSelected, setWebSelected] = useState(false)
+  const [webSelections, setWebSelections] = useState<WebSelections | null>(null)
+  const [printSelected, setPrintSelected] = useState(false)
+  const [printSelections, setPrintSelections] = useState<PrintSelections>(
+    createPrintSelections,
+  )
+  const [digitalSelected, setDigitalSelected] = useState(false)
+  const [digitalSelections, setDigitalSelections] = useState<DigitalSelections>(
+    createDigitalSelections,
+  )
   const [timeline, setTimeline] = useState<DesiredTimeline | null>(null)
   const [contactDetails, setContactDetails] = useState<ContactDetails>(
     initialContactDetails,
@@ -231,10 +339,23 @@ export function QuoteRequestFlow() {
   const stepHeadingRef = useRef<HTMLHeadingElement>(null)
   const previousStepRef = useRef<Step>('intro')
 
-  const estimate = calculateBrandingEstimate({
-    formula,
+  const estimate = calculateQuoteEstimate({
+    brandingFormula: brandingSelected ? formula : null,
+    digital: digitalSelected ? digitalSelections : null,
+    print: printSelected ? printSelections : null,
     timeline: timeline ?? 'normal',
+    web: webSelected ? webSelections : null,
   })
+  const workflowSteps: Step[] = [
+    'domains',
+    ...(brandingSelected ? (['branding'] as const) : []),
+    ...(webSelected ? (['web'] as const) : []),
+    ...(printSelected ? (['print'] as const) : []),
+    ...(digitalSelected ? (['digital'] as const) : []),
+    'timeline',
+    'summary',
+    'contact',
+  ]
   const workflowStepIndex = workflowSteps.indexOf(step)
   const isBranding = step === 'branding'
   const isContact = step === 'contact'
@@ -242,6 +363,9 @@ export function QuoteRequestFlow() {
   const isIntro = step === 'intro'
   const isSummary = step === 'summary'
   const isTimeline = step === 'timeline'
+  const isWeb = step === 'web'
+  const isPrint = step === 'print'
+  const isDigital = step === 'digital'
   const showCounter = workflowStepIndex >= 0
   const showLiveEstimate =
     estimate.lowCents > 0 && step !== 'intro' && step !== 'summary'
@@ -264,6 +388,14 @@ export function QuoteRequestFlow() {
       setFormula(parsedDraft.formula)
       setStep(parsedDraft.step)
       setTimeline(parsedDraft.timeline)
+      setWebSelected(parsedDraft.webSelected)
+      setWebSelections(parsedDraft.webSelections)
+      setPrintSelected(parsedDraft.printSelected ?? false)
+      setPrintSelections(parsedDraft.printSelections ?? createPrintSelections())
+      setDigitalSelected(parsedDraft.digitalSelected ?? false)
+      setDigitalSelections(
+        parsedDraft.digitalSelections ?? createDigitalSelections(),
+      )
     } catch {
       removeQuoteRequestDraft()
     } finally {
@@ -278,6 +410,12 @@ export function QuoteRequestFlow() {
       step !== 'intro' ||
       brandingSelected ||
       formula !== null ||
+      webSelected ||
+      webSelections !== null ||
+      printSelected ||
+      Object.values(printSelections).some(Boolean) ||
+      digitalSelected ||
+      Object.values(digitalSelections).some(Boolean) ||
       timeline !== null ||
       Object.values(contactDetails).some(Boolean)
 
@@ -292,6 +430,12 @@ export function QuoteRequestFlow() {
       formula,
       step,
       timeline,
+      webSelected,
+      webSelections,
+      printSelected,
+      printSelections,
+      digitalSelected,
+      digitalSelections,
     }
 
     try {
@@ -310,6 +454,12 @@ export function QuoteRequestFlow() {
     step,
     submissionStatus,
     timeline,
+    webSelected,
+    webSelections,
+    printSelected,
+    printSelections,
+    digitalSelected,
+    digitalSelections,
   ])
 
   useEffect(() => {
@@ -339,36 +489,30 @@ export function QuoteRequestFlow() {
 
   const canContinue =
     step === 'domains'
-      ? brandingSelected
+      ? brandingSelected || webSelected || printSelected || digitalSelected
       : step === 'branding'
         ? formula !== null
-        : step === 'timeline'
-          ? timeline !== null
-          : true
+        : step === 'web'
+          ? webSelections !== null
+          : step === 'print'
+            ? Object.values(printSelections).some((quantity) => quantity > 0)
+            : step === 'digital'
+              ? Object.values(digitalSelections).some(Boolean)
+              : step === 'timeline'
+                ? timeline !== null
+                : true
 
   const next = () => {
     if (!canContinue) return
 
-    const nextStep: Partial<Record<Step, Step>> = {
-      intro: 'domains',
-      domains: 'branding',
-      branding: 'timeline',
-      timeline: 'summary',
-      summary: 'contact',
-    }
-    const target = nextStep[step]
+    const sequence: Step[] = ['intro', ...workflowSteps]
+    const target = sequence[sequence.indexOf(step) + 1]
     if (target) moveToStep(target)
   }
 
   const previous = () => {
-    const previousStep: Partial<Record<Step, Step>> = {
-      domains: 'intro',
-      branding: 'domains',
-      timeline: 'branding',
-      summary: 'timeline',
-      contact: 'summary',
-    }
-    const target = previousStep[step]
+    const sequence: Step[] = ['intro', ...workflowSteps]
+    const target = sequence[sequence.indexOf(step) - 1]
     if (target) moveToStep(target)
   }
 
@@ -377,6 +521,53 @@ export function QuoteRequestFlow() {
     setContactErrors((current) => ({ ...current, [field]: undefined }))
     setSubmissionStatus('idle')
     setSubmissionError('')
+  }
+
+  const updateWebSelection = <Key extends keyof WebSelections>(
+    key: Key,
+    value: WebSelections[Key],
+  ) => {
+    setWebSelections((current) => ({
+      ...(current ?? initialWebSelections),
+      [key]: value,
+    }))
+  }
+
+  const selectWebProject = (type: WebProjectType) => {
+    const project = webProjects[type]
+    setWebSelections((current) => ({
+      ...(current ?? initialWebSelections),
+      pages: project.includedPages,
+      type,
+    }))
+  }
+
+  const toggleWebFeature = (feature: WebFeature) => {
+    setWebSelections((current) => {
+      const selections = current ?? initialWebSelections
+      const isSelected = selections.features.includes(feature)
+
+      return {
+        ...selections,
+        features: isSelected
+          ? selections.features.filter((value) => value !== feature)
+          : [...selections.features, feature],
+      }
+    })
+  }
+
+  const updatePrintQuantity = (support: PrintSupport, quantity: number) => {
+    setPrintSelections((current) => ({
+      ...current,
+      [support]: Math.max(0, Math.min(20, quantity)),
+    }))
+  }
+
+  const toggleDigitalSelection = (support: DigitalSupport) => {
+    setDigitalSelections((current) => ({
+      ...current,
+      [support]: !current[support],
+    }))
   }
 
   const validateContactDetails = () => {
@@ -419,7 +610,13 @@ export function QuoteRequestFlow() {
 
   const submitQuoteRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (submissionStatus === 'submitting' || !formula || !timeline) return
+    if (
+      submissionStatus === 'submitting' ||
+      !timeline ||
+      (!brandingSelected && !webSelected && !printSelected && !digitalSelected)
+    ) {
+      return
+    }
     if (!validateContactDetails()) return
 
     setSubmissionStatus('submitting')
@@ -434,7 +631,12 @@ export function QuoteRequestFlow() {
           lines: getEstimateSnapshotLines(estimate),
           lowCents: estimate.lowCents,
         },
-        selections: { branding: { formula } },
+        selections: {
+          ...(brandingSelected && formula ? { branding: { formula } } : {}),
+          ...(webSelected && webSelections ? { web: webSelections } : {}),
+          ...(printSelected ? { print: printSelections } : {}),
+          ...(digitalSelected ? { digital: digitalSelections } : {}),
+        },
       })
       setSubmissionStatus('sent')
       window.scrollTo({ top: 0, behavior: 'auto' })
@@ -481,6 +683,12 @@ export function QuoteRequestFlow() {
     setStep('intro')
     setBrandingSelected(false)
     setFormula(null)
+    setWebSelected(false)
+    setWebSelections(null)
+    setPrintSelected(false)
+    setPrintSelections(createPrintSelections())
+    setDigitalSelected(false)
+    setDigitalSelections(createDigitalSelections())
     setTimeline(null)
     setContactDetails(initialContactDetails)
     setContactErrors({})
@@ -548,7 +756,7 @@ export function QuoteRequestFlow() {
       {isIntro ? (
         <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
           <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-[1.125rem]">
                 <img
                   alt=""
@@ -585,7 +793,7 @@ export function QuoteRequestFlow() {
                 </span>
               </div>
               <span className="font-meta text-[0.78125rem] font-semibold text-[#1e2324]">
-                Étape 1 / 6
+                Étape 1 / {workflowSteps.length}
               </span>
             </div>
             <div aria-hidden="true" className="h-[3px] bg-white">
@@ -593,10 +801,10 @@ export function QuoteRequestFlow() {
             </div>
           </div>
         </header>
-      ) : isBranding ? (
+      ) : isBranding || isWeb || isPrint || isDigital ? (
         <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
           <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-[1.125rem]">
                 <img
                   alt=""
@@ -609,9 +817,26 @@ export function QuoteRequestFlow() {
                   Pauline Noël
                 </span>
               </div>
-              <span className="font-meta text-[0.78125rem] font-semibold text-[#1e2324]">
-                Étape 2 / 6
-              </span>
+              <div className="flex items-center gap-[0.9375rem]">
+                {showLiveEstimate && (
+                  <output
+                    aria-live="polite"
+                    className="hidden h-[2.6875rem] items-center gap-[0.3125rem] rounded-full bg-[#1e2324] px-[1.875rem] py-[0.875rem] text-[0.9375rem] font-bold whitespace-nowrap text-white sm:flex"
+                  >
+                    <img
+                      alt=""
+                      className="size-1.5"
+                      height="6"
+                      src={estimationDot}
+                      width="6"
+                    />
+                    Estimation&nbsp;: {formatEuros(estimate.lowCents)}
+                  </output>
+                )}
+                <span className="font-meta text-[0.78125rem] font-semibold whitespace-nowrap text-[#1e2324]">
+                  Étape {workflowStepIndex + 1} / {workflowSteps.length}
+                </span>
+              </div>
             </div>
             <div aria-hidden="true" className="h-[3px] bg-white">
               <div className="h-full w-2/5 bg-[#f0606f]" />
@@ -649,7 +874,7 @@ export function QuoteRequestFlow() {
                   Estimation&nbsp;: {formatEuros(estimate.lowCents)}
                 </output>
                 <span className="font-meta text-[0.78125rem] font-semibold whitespace-nowrap text-[#1e2324]">
-                  Étape 6 / 6
+                  Étape {workflowStepIndex + 1} / {workflowSteps.length}
                 </span>
               </div>
             </div>
@@ -749,7 +974,14 @@ export function QuoteRequestFlow() {
           'mx-auto w-full',
           isIntro
             ? 'flex min-h-[calc(100dvh-8.3125rem)] max-w-[67.5rem] items-center px-5 pt-10 pb-32 sm:px-8 lg:px-12 xl:px-0'
-            : isDomains || isBranding || isTimeline || isSummary || isContact
+            : isDomains ||
+                isBranding ||
+                isWeb ||
+                isPrint ||
+                isDigital ||
+                isTimeline ||
+                isSummary ||
+                isContact
               ? 'max-w-[67.5rem] px-5 pt-10 pb-[8.5rem] sm:px-8 lg:px-12 xl:px-0'
               : 'max-w-[47.5rem] px-4 pt-10 pb-36 sm:px-6',
         )}
@@ -835,39 +1067,50 @@ export function QuoteRequestFlow() {
                   />
                 }
                 label="Identité & branding"
-                onChange={setBrandingSelected}
+                onChange={(checked) => {
+                  setBrandingSelected(checked)
+                  if (!checked) setFormula(null)
+                }}
               />
               <DomainCard
+                checked={webSelected}
                 description="site vitrine, site e-commerce, landing, refonte de l’existant"
-                disabled
                 icon={
                   <img
                     alt=""
                     className="h-[2.39375rem] w-[2.630875rem]"
                     height="38"
-                    src={printDomainIcon}
+                    src={webDomainIcon}
                     width="42"
                   />
                 }
                 label="Site internet · design UX/UI"
+                onChange={(checked) => {
+                  setWebSelected(checked)
+                  setWebSelections(null)
+                }}
               />
               <DomainCard
+                checked={printSelected}
                 description="Flyer, affiche, dépliant, carte de visite, plaquette commerciale, covering…"
-                disabled
                 icon={
                   <img
                     alt=""
                     className="h-[2.383125rem] w-[2.586125rem]"
                     height="38"
-                    src={webDomainIcon}
+                    src={printDomainIcon}
                     width="41"
                   />
                 }
                 label="Supports de com. imprimés"
+                onChange={(checked) => {
+                  setPrintSelected(checked)
+                  if (!checked) setPrintSelections(createPrintSelections())
+                }}
               />
               <DomainCard
                 description="Newsletter, posts réseaux sociaux, signature, slides pptx"
-                disabled
+                checked={digitalSelected}
                 icon={
                   <img
                     alt=""
@@ -878,6 +1121,10 @@ export function QuoteRequestFlow() {
                   />
                 }
                 label="Supports de com. digitaux"
+                onChange={(checked) => {
+                  setDigitalSelected(checked)
+                  if (!checked) setDigitalSelections(createDigitalSelections())
+                }}
               />
             </fieldset>
           </section>
@@ -1007,6 +1254,326 @@ export function QuoteRequestFlow() {
           </section>
         )}
 
+        {step === 'web' && (
+          <section
+            aria-labelledby="web-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Site internet · design UX/UI
+              </p>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="web-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Quel type de projet ?
+              </h1>
+            </div>
+
+            <fieldset className="mt-8 flex flex-col gap-[0.8125rem]">
+              <legend className="sr-only">Type de projet web</legend>
+              {(
+                Object.entries(webProjects) as Array<
+                  [WebProjectType, (typeof webProjects)[WebProjectType]]
+                >
+              ).map(([type, project]) => (
+                <label
+                  className={cn(
+                    'relative cursor-pointer rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.4375rem] py-[1.3125rem]',
+                    'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3',
+                  )}
+                  key={type}
+                >
+                  <input
+                    checked={webSelections?.type === type}
+                    className="sr-only"
+                    name="web-project-type"
+                    onChange={() => selectWebProject(type)}
+                    type="radio"
+                    value={type}
+                  />
+                  <span className="flex items-start gap-4">
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-heading text-[1.1875rem] leading-normal font-bold">
+                          {project.label}
+                        </span>
+                        <span className="font-meta text-xs text-[#a0a3a3]">
+                          {project.designDays.toLocaleString('fr-FR')} jours
+                          UX/UI •{' '}
+                          {project.developmentDays.toLocaleString('fr-FR')}{' '}
+                          jours développement
+                        </span>
+                      </span>
+                      <span className="mt-[0.17375rem] block text-[0.84375rem] leading-[1.45] text-[#1f2a28]">
+                        {project.description}
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
+                      dès {formatEuros(project.priceCents)}
+                    </span>
+                  </span>
+                  {webSelections?.type === type && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -inset-0.5 rounded-[1.125rem] border-[2.5px] border-[#f0606f]"
+                    />
+                  )}
+                </label>
+              ))}
+            </fieldset>
+
+            <p className="mt-3 text-right text-sm text-[#1f2a28]/70">
+              Base&nbsp;: 450&nbsp;€ / jour.
+            </p>
+
+            {webSelections && (
+              <div className="mt-6 border-t border-dotted border-[#1e2324] pt-[1.375rem]">
+                {webProjects[webSelections.type].pagesRelevant && (
+                  <div className="flex items-center gap-4 rounded-[1.125rem] bg-white px-[1.375rem] py-[1.3125rem]">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="font-heading text-[1.1875rem] font-bold">
+                        Nombre de pages
+                      </h2>
+                      <p className="mt-0.5 font-meta text-[0.84375rem]">
+                        + 450€ la page supplémentaire
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-[0.6875rem] rounded-full border border-[#c7c7c7] bg-white px-2.5 py-[0.4375rem]">
+                      <button
+                        aria-label="Retirer une page"
+                        className="flex size-[1.5835rem] items-center justify-center rounded-full bg-[#f2f0ea] text-[1.0625rem]"
+                        disabled={webSelections.pages <= 1}
+                        onClick={() =>
+                          updateWebSelection('pages', webSelections.pages - 1)
+                        }
+                        type="button"
+                      >
+                        −
+                      </button>
+                      <output className="min-w-6 text-center font-body text-[0.9375rem] font-semibold">
+                        {webSelections.pages}
+                      </output>
+                      <button
+                        aria-label="Ajouter une page"
+                        className="flex size-[1.5835rem] items-center justify-center rounded-full bg-[#1f2a28] text-[1.0625rem] text-white"
+                        disabled={webSelections.pages >= 40}
+                        onClick={() =>
+                          updateWebSelection('pages', webSelections.pages + 1)
+                        }
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-[0.8125rem] rounded-[1.125rem] bg-white px-[1.375rem] py-[1.3125rem]">
+                  <h2 className="font-heading text-[1.1875rem] font-bold">
+                    Fonctionnalités envisagées
+                  </h2>
+                  <p className="mt-1 font-meta text-[0.84375rem] leading-[1.45]">
+                    Les fonctionnalités sont chiffrées sur-mesure avec mon
+                    développeur lors du devis officiel.
+                  </p>
+                  <div className="mt-[0.8125rem] flex flex-wrap gap-2">
+                    {webFeatureEntries.map(([feature, label]) => {
+                      const selected = webSelections.features.includes(feature)
+                      return (
+                        <button
+                          aria-pressed={selected}
+                          className={cn(
+                            'rounded-full border border-[#c7c7c7] bg-white px-[0.8125rem] py-[0.4375rem] font-body text-[0.9375rem] font-semibold',
+                            selected && 'border-[#f0606f] bg-[#ffdcdf]',
+                          )}
+                          key={feature}
+                          onClick={() => toggleWebFeature(feature)}
+                          type="button"
+                        >
+                          {selected && <span aria-hidden="true">• </span>}
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="mt-[0.8125rem] rounded-[1.125rem] bg-white px-[1.375rem] py-[1.3125rem]">
+                  <h2 className="font-heading text-[1.1875rem] font-bold">
+                    Option
+                  </h2>
+                  <p className="mt-0.5 font-meta text-[0.84375rem]">
+                    Maintenance
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {step === 'print' && (
+          <section
+            aria-labelledby="print-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Supports de com. imprimés
+              </p>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="print-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Quels supports imprimés ?
+              </h1>
+              <p className="mt-[0.875rem] text-base leading-6">
+                Ajustez les quantités souhaitées.
+              </p>
+            </div>
+
+            <ul className="mt-8 flex flex-col gap-[0.8125rem]">
+              {printSupportEntries.map(([support, definition]) => {
+                const quantity = printSelections[support]
+                return (
+                  <li
+                    className={cn(
+                      'flex items-center gap-4 rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.4375rem] py-[1.3125rem]',
+                      quantity > 0 && 'border-[#f0606f]',
+                    )}
+                    key={support}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-heading text-[1.1875rem] leading-normal font-bold">
+                          {definition.label}
+                        </h2>
+                        <span className="font-meta text-xs text-[#a0a3a3]">
+                          {definition.duration}
+                        </span>
+                      </div>
+                      {support === 'brochure' && (
+                        <p className="mt-0.5 font-meta text-xs text-[#a0a3a3]">
+                          option page en plus : 225 € · 0,5 jour
+                        </p>
+                      )}
+                    </div>
+                    <p className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
+                      {formatEuros(definition.priceCents)}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-[0.6875rem] rounded-full bg-[#e9edf6] px-[0.5625rem] py-[0.375rem]">
+                      <button
+                        aria-label={`Retirer un exemplaire de ${definition.label}`}
+                        className="flex size-[1.5835rem] items-center justify-center rounded-full bg-white text-[1.0625rem] text-[#1f2a28] disabled:opacity-40"
+                        disabled={quantity === 0}
+                        onClick={() =>
+                          updatePrintQuantity(support, quantity - 1)
+                        }
+                        type="button"
+                      >
+                        −
+                      </button>
+                      <output className="min-w-6 text-center font-body text-[0.9375rem] font-semibold">
+                        {quantity}
+                      </output>
+                      <button
+                        aria-label={`Ajouter un exemplaire de ${definition.label}`}
+                        className="flex size-[1.5835rem] items-center justify-center rounded-full bg-[#1f2a28] text-[1.0625rem] text-white disabled:opacity-40"
+                        disabled={quantity === 20}
+                        onClick={() =>
+                          updatePrintQuantity(support, quantity + 1)
+                        }
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <p className="mt-3 text-right text-sm text-[#1f2a28]/70">
+              Base&nbsp;: 450&nbsp;€ / jour.
+            </p>
+          </section>
+        )}
+
+        {step === 'digital' && (
+          <section
+            aria-labelledby="digital-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Supports de com. digitaux
+              </p>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="digital-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Quels supports digitaux ?
+              </h1>
+            </div>
+
+            <fieldset className="mt-8 flex flex-col gap-[0.8125rem]">
+              <legend className="sr-only">
+                Supports de communication digitaux
+              </legend>
+              {digitalSupportEntries.map(([support, definition]) => {
+                const selected = digitalSelections[support]
+                return (
+                  <label
+                    className={cn(
+                      'relative flex cursor-pointer items-center gap-4 rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.4375rem] py-[1.3125rem] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3',
+                      selected && 'border-[#f0606f]',
+                    )}
+                    key={support}
+                  >
+                    <input
+                      checked={selected}
+                      className="sr-only"
+                      onChange={() => toggleDigitalSelection(support)}
+                      type="checkbox"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-heading text-[1.1875rem] leading-normal font-bold">
+                          {definition.label}
+                        </span>
+                        <span className="font-meta text-xs text-[#a0a3a3]">
+                          {definition.duration}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
+                      {formatEuros(definition.priceCents)}
+                    </span>
+                    {selected && (
+                      <span
+                        aria-hidden="true"
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f0606f] text-sm font-bold text-white"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
+            </fieldset>
+
+            <p className="mt-3 text-right text-sm text-[#1f2a28]/70">
+              Base&nbsp;: 450&nbsp;€ / jour.
+            </p>
+          </section>
+        )}
+
         {step === 'timeline' && (
           <section
             aria-labelledby="timeline-heading"
@@ -1114,7 +1681,7 @@ export function QuoteRequestFlow() {
                     </p>
                   </div>
                   <p className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
-                    {formatEuros(line.amountCents)}
+                    {formatEstimateLine(line)}
                   </p>
                 </div>
               ))}
@@ -1311,6 +1878,9 @@ export function QuoteRequestFlow() {
           isIntro ||
             isDomains ||
             isBranding ||
+            isWeb ||
+            isPrint ||
+            isDigital ||
             isTimeline ||
             isSummary ||
             isContact
@@ -1323,7 +1893,14 @@ export function QuoteRequestFlow() {
             'mx-auto flex items-center gap-3.5',
             isIntro
               ? 'max-w-[67.5rem] justify-end px-5 sm:px-8 lg:px-12 xl:px-0'
-              : isDomains || isBranding || isTimeline || isSummary || isContact
+              : isDomains ||
+                  isBranding ||
+                  isWeb ||
+                  isPrint ||
+                  isDigital ||
+                  isTimeline ||
+                  isSummary ||
+                  isContact
                 ? 'max-w-[67.5rem] px-5 sm:px-8 lg:px-12 xl:px-0'
                 : 'max-w-[47.5rem] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6',
           )}
@@ -1345,6 +1922,9 @@ export function QuoteRequestFlow() {
                 (isIntro ||
                   isDomains ||
                   isBranding ||
+                  isWeb ||
+                  isPrint ||
+                  isDigital ||
                   isTimeline ||
                   isSummary ||
                   isContact) &&

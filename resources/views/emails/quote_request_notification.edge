@@ -1,41 +1,60 @@
 <!doctype html>
 <html lang="fr">
-  <body style="font-family: Arial, sans-serif; color: #1f2a28; line-height: 1.5">
-    <h1>Nouvelle demande de devis</h1>
+  <body style="margin: 0; background-color: #f5f6f3; color: #1e2324; font-family: Arial, sans-serif; line-height: 1.5">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f6f3; padding: 32px 16px">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff">
+            <tr>
+              <td style="padding: 32px 32px 24px; border-bottom: 4px solid #f0606f">
+                <img src="cid:{{ logoCid }}" width="92" alt="Pauline Noël" style="display: block; width: 92px; height: auto" />
+                <p style="margin: 24px 0 4px; color: #63706b; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase">Nouvelle demande de devis</p>
+                <h1 style="margin: 0; color: #1e2324; font-size: 28px; line-height: 1.2">{{ quoteRequest.fullName }}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 32px 32px">
+                <h2 style="margin: 24px 0 12px; font-size: 19px">Coordonnées</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; font-size: 15px">
+                  <tr><td style="padding: 7px 0; color: #63706b; width: 35%">E-mail</td><td style="padding: 7px 0"><a href="mailto:{{ quoteRequest.email }}" style="color: #1e2324">{{ quoteRequest.email }}</a></td></tr>
+                  <tr><td style="padding: 7px 0; color: #63706b">Téléphone</td><td style="padding: 7px 0">{{ quoteRequest.phone || 'Non renseigné' }}</td></tr>
+                  <tr><td style="padding: 7px 0; color: #63706b">Entreprise</td><td style="padding: 7px 0">{{ quoteRequest.companyName || 'Non renseignée' }}</td></tr>
+                  <tr><td style="padding: 7px 0; color: #63706b">Site web</td><td style="padding: 7px 0">{{ quoteRequest.websiteUrl || 'Non renseigné' }}</td></tr>
+                </table>
 
-    <h2>Coordonnées</h2>
-    <p>
-      <strong>Nom :</strong> {{ quoteRequest.fullName }}<br>
-      <strong>E-mail :</strong> {{ quoteRequest.email }}<br>
-      <strong>Téléphone :</strong> {{ quoteRequest.phone || 'Non renseigné' }}<br>
-      <strong>Entreprise :</strong> {{ quoteRequest.companyName || 'Non renseignée' }}<br>
-      <strong>Site web :</strong> {{ quoteRequest.websiteUrl || 'Non renseigné' }}
-    </p>
+                <h2 style="margin: 28px 0 10px; font-size: 19px">Projet</h2>
+                <p style="margin: 0; white-space: pre-line">{{ quoteRequest.projectDescription }}</p>
+                <p style="margin: 12px 0 0"><strong>Délai souhaité :</strong> {{ quoteRequest.desiredTimeline }}</p>
 
-    <h2>Projet</h2>
-    <p>{{ quoteRequest.projectDescription }}</p>
-    <p>
-      <strong>Délai :</strong> {{ quoteRequest.desiredTimeline }}
-    </p>
+                <h2 style="margin: 28px 0 12px; font-size: 19px">Prestations sélectionnées</h2>
+                @each(section in selectionSections)
+                  <h3 style="margin: 18px 0 6px; color: #1e2324; font-size: 16px">{{ section.title }}</h3>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; font-size: 15px">
+                    @each(row in section.rows)
+                      <tr><td style="padding: 6px 0; color: #63706b; width: 35%; vertical-align: top">{{ row.label }}</td><td style="padding: 6px 0; vertical-align: top">{{ row.value }}</td></tr>
+                    @endeach
+                  </table>
+                @endeach
 
-    <h2>Sélection enregistrée</h2>
-    <p>Identité & branding : {{ quoteRequest.selections.branding.formula }}</p>
-
-    <h2>Estimation enregistrée</h2>
-    <ul>
-      @each(line in quoteRequest.estimateLines)
-        <li>
-          <strong>{{ line.label }}</strong> — {{ line.detail }} :
-          {{ Math.round(line.amountCents / 100).toLocaleString('fr-FR') }} €
-        </li>
-      @endeach
-    </ul>
-    <p>
-      <strong>Total :</strong>
-      {{ Math.round(quoteRequest.estimateLowCents / 100).toLocaleString('fr-FR') }} €
-      @if(quoteRequest.estimateHighCents !== quoteRequest.estimateLowCents)
-        à {{ Math.round(quoteRequest.estimateHighCents / 100).toLocaleString('fr-FR') }} €
-      @endif
-    </p>
+                <h2 style="margin: 28px 0 12px; font-size: 19px">Estimation enregistrée</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; font-size: 14px">
+                  <thead>
+                    <tr style="background-color: #1e2324; color: #ffffff"><th align="left" style="padding: 10px 8px">Prestation</th><th align="left" style="padding: 10px 8px">Détail</th><th align="right" style="padding: 10px 8px">Montant</th></tr>
+                  </thead>
+                  <tbody>
+                    @each(line in estimateLines)
+                      <tr><td style="padding: 10px 8px; border-bottom: 1px solid #dde1dd; vertical-align: top"><strong>{{ line.label }}</strong></td><td style="padding: 10px 8px; border-bottom: 1px solid #dde1dd; color: #63706b; vertical-align: top">{{ line.detail }}</td><td align="right" style="padding: 10px 8px; border-bottom: 1px solid #dde1dd; vertical-align: top; white-space: nowrap">{{ line.amount }}</td></tr>
+                    @endeach
+                  </tbody>
+                  <tfoot>
+                    <tr><td colspan="2" style="padding: 14px 8px 4px; font-size: 16px"><strong>Total indicatif</strong></td><td align="right" style="padding: 14px 8px 4px; color: #f0606f; font-size: 16px; white-space: nowrap"><strong>{{ quoteRequest.estimateHighCents !== quoteRequest.estimateLowCents ? total + ' à ' + maximumTotal : total }}</strong></td></tr>
+                  </tfoot>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

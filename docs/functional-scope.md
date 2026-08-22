@@ -38,7 +38,7 @@ Le parcours couvre les quatre familles suivantes et leurs branches conditionnell
 
 - Signature e-mail ;
 - bandeaux réseaux sociaux ;
-- template de cinq posts réseaux sociaux ;
+- template de quatre posts réseaux sociaux ;
 - newsletter ;
 - présentation de cinq slides.
 

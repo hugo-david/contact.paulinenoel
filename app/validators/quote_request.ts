@@ -17,9 +17,56 @@ export const storeQuoteRequestValidator = vine.create({
   projectDescription: vine.string().trim().minLength(1).maxLength(5_000),
   desiredTimeline: vine.enum(['flexible', 'normal', 'express']),
   selections: vine.object({
-    branding: vine.object({
-      formula: vine.enum(['refonte', 'mixte', 'creation']),
-    }),
+    branding: vine
+      .object({
+        formula: vine.enum(['refonte', 'mixte', 'creation']),
+      })
+      .optional(),
+    digital: vine
+      .object({
+        emailSignature: vine.boolean(),
+        socialMediaBanners: vine.boolean(),
+        socialMediaPostsTemplate: vine.boolean(),
+        newsletter: vine.boolean(),
+        presentation: vine.boolean(),
+      })
+      .optional(),
+    web: vine
+      .object({
+        features: vine.array(
+          vine.enum([
+            'blog',
+            'event',
+            'payment',
+            'booking',
+            'multilingual',
+            'memberArea',
+          ]),
+        ),
+        pages: vine.number().withoutDecimals().range([1, 40]),
+        type: vine.enum([
+          'showcase',
+          'ecommerce',
+          'landing',
+          'showcaseRedesign',
+          'landingRedesign',
+        ]),
+      })
+      .optional(),
+    print: vine
+      .object({
+        flyer: vine.number().withoutDecimals().range([0, 20]),
+        poster: vine.number().withoutDecimals().range([0, 20]),
+        brochure: vine.number().withoutDecimals().range([0, 20]),
+        businessCard: vine.number().withoutDecimals().range([0, 20]),
+        rollup: vine.number().withoutDecimals().range([0, 20]),
+        banner: vine.number().withoutDecimals().range([0, 20]),
+        fullWrap: vine.number().withoutDecimals().range([0, 20]),
+        signage: vine.number().withoutDecimals().range([0, 20]),
+        letterhead: vine.number().withoutDecimals().range([0, 20]),
+        goodies: vine.number().withoutDecimals().range([0, 20]),
+      })
+      .optional(),
   }),
   estimate: vine.object({
     highCents: vine.number().withoutDecimals().min(0),

@@ -10,7 +10,7 @@ import type {
   QuoteRequestSelections,
 } from '../../shared/quote-request/branding-estimate.js'
 import {
-  calculateBrandingEstimate,
+  calculateQuoteEstimate,
   getEstimateSnapshotLines,
 } from '../../shared/quote-request/branding-estimate.js'
 
@@ -54,9 +54,28 @@ export default class QuoteRequestSubmissionService {
   constructor(private notificationService: QuoteRequestNotificationService) {}
 
   async submit(input: SubmitQuoteRequestInput) {
-    const estimate = calculateBrandingEstimate({
-      formula: input.selections.branding.formula,
+    const hasDigitalSelection =
+      input.selections.digital !== undefined &&
+      Object.values(input.selections.digital).some(Boolean)
+    const hasPrintSelection =
+      input.selections.print !== undefined &&
+      Object.values(input.selections.print).some((quantity) => quantity > 0)
+
+    if (
+      !input.selections.branding &&
+      !input.selections.web &&
+      !hasDigitalSelection &&
+      !hasPrintSelection
+    ) {
+      throw new QuoteRequestEstimateChangedError()
+    }
+
+    const estimate = calculateQuoteEstimate({
+      brandingFormula: input.selections.branding?.formula ?? null,
+      digital: input.selections.digital ?? null,
+      print: input.selections.print ?? null,
       timeline: input.desiredTimeline,
+      web: input.selections.web ?? null,
     })
     const estimateLines = getEstimateSnapshotLines(estimate)
     const presentedEstimate = input.estimate
