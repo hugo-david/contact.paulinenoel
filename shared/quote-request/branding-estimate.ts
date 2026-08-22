@@ -24,6 +24,12 @@ export type PrintSupport =
   | 'signage'
   | 'letterhead'
   | 'goodies'
+export type DigitalSupport =
+  | 'emailSignature'
+  | 'socialMediaBanners'
+  | 'socialMediaPostsTemplate'
+  | 'newsletter'
+  | 'presentation'
 
 interface BrandingFormulaDefinition {
   description: string
@@ -82,6 +88,7 @@ export interface QuoteRequestSelections {
   branding?: {
     formula: BrandingFormula
   }
+  digital?: DigitalSelections
   web?: WebSelections
   print?: PrintSelections
 }
@@ -93,6 +100,7 @@ export interface WebSelections {
 }
 
 export type PrintSelections = Record<PrintSupport, number>
+export type DigitalSelections = Record<DigitalSupport, boolean>
 
 interface PrintSupportDefinition {
   duration: string
@@ -137,6 +145,46 @@ export function createPrintSelections(): PrintSelections {
   return Object.fromEntries(
     Object.keys(printSupports).map((support) => [support, 0]),
   ) as PrintSelections
+}
+
+interface DigitalSupportDefinition {
+  duration: string
+  label: string
+  priceCents: number
+}
+
+export const digitalSupports = {
+  emailSignature: {
+    label: 'Signature email',
+    duration: '1h',
+    priceCents: 6_400,
+  },
+  socialMediaBanners: {
+    label: 'Bandeaux réseaux sociaux',
+    duration: '2h',
+    priceCents: 12_800,
+  },
+  socialMediaPostsTemplate: {
+    label: 'Template 4 posts réseaux sociaux',
+    duration: '4h',
+    priceCents: 25_600,
+  },
+  newsletter: {
+    label: 'Newsletter',
+    duration: '0,5 jour',
+    priceCents: 22_500,
+  },
+  presentation: {
+    label: 'Présentation pptx (5 slides)',
+    duration: '1 jour',
+    priceCents: 45_000,
+  },
+} as const satisfies Record<DigitalSupport, DigitalSupportDefinition>
+
+export function createDigitalSelections(): DigitalSelections {
+  return Object.fromEntries(
+    Object.keys(digitalSupports).map((support) => [support, false]),
+  ) as DigitalSelections
 }
 
 interface WebProjectDefinition {
@@ -250,11 +298,13 @@ export function calculateBrandingEstimate({
 
 export function calculateQuoteEstimate({
   brandingFormula,
+  digital,
   print,
   timeline,
   web,
 }: {
   brandingFormula: BrandingFormula | null
+  digital: DigitalSelections | null
   print: PrintSelections | null
   timeline: DesiredTimeline
   web: WebSelections | null
@@ -308,6 +358,21 @@ export function calculateQuoteEstimate({
       lines.push({
         amountCents: definition.priceCents * quantity,
         detail: `${quantity} × ${formatEuros(definition.priceCents)}`,
+        label: definition.label,
+      })
+    }
+  }
+
+  if (digital) {
+    for (const [support, selected] of Object.entries(digital) as Array<
+      [DigitalSupport, boolean]
+    >) {
+      if (!selected) continue
+
+      const definition = digitalSupports[support]
+      lines.push({
+        amountCents: definition.priceCents,
+        detail: definition.duration,
         label: definition.label,
       })
     }

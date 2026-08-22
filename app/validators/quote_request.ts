@@ -22,6 +22,15 @@ export const storeQuoteRequestValidator = vine.create({
         formula: vine.enum(['refonte', 'mixte', 'creation']),
       })
       .optional(),
+    digital: vine
+      .object({
+        emailSignature: vine.boolean(),
+        socialMediaBanners: vine.boolean(),
+        socialMediaPostsTemplate: vine.boolean(),
+        newsletter: vine.boolean(),
+        presentation: vine.boolean(),
+      })
+      .optional(),
     web: vine
       .object({
         features: vine.array(

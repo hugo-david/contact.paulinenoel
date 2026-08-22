@@ -12,6 +12,8 @@ import { cn } from '~/utils/cn'
 import type {
   BrandingFormula,
   DesiredTimeline,
+  DigitalSelections,
+  DigitalSupport,
   EstimateLine,
   PrintSelections,
   PrintSupport,
@@ -22,7 +24,9 @@ import type {
 import {
   brandingFormulas,
   calculateQuoteEstimate,
+  createDigitalSelections,
   createPrintSelections,
+  digitalSupports,
   formatEuros,
   getEstimateSnapshotLines,
   printSupports,
@@ -37,6 +41,7 @@ type Step =
   | 'branding'
   | 'web'
   | 'print'
+  | 'digital'
   | 'timeline'
   | 'summary'
   | 'contact'
@@ -72,6 +77,8 @@ interface QuoteRequestDraft {
   timeline: DesiredTimeline | null
   printSelected?: boolean
   printSelections?: PrintSelections
+  digitalSelected?: boolean
+  digitalSelections?: DigitalSelections
   webSelected: boolean
   webSelections: WebSelections | null
 }
@@ -88,6 +95,10 @@ const webFeatureEntries = Object.entries(webFeatures) as Array<
 
 const printSupportEntries = Object.entries(printSupports) as Array<
   [PrintSupport, (typeof printSupports)[PrintSupport]]
+>
+
+const digitalSupportEntries = Object.entries(digitalSupports) as Array<
+  [DigitalSupport, (typeof digitalSupports)[DigitalSupport]]
 >
 
 function formatEstimateLine(line: EstimateLine) {
@@ -187,6 +198,15 @@ function isPrintSelections(value: unknown): value is PrintSelections {
   )
 }
 
+function isDigitalSelections(value: unknown): value is DigitalSelections {
+  if (typeof value !== 'object' || value === null) return false
+
+  const selections = value as Record<string, unknown>
+  return Object.keys(digitalSupports).every(
+    (support) => typeof selections[support] === 'boolean',
+  )
+}
+
 function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
   if (typeof value !== 'object' || value === null) return false
 
@@ -197,6 +217,7 @@ function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
     'branding',
     'web',
     'print',
+    'digital',
     'timeline',
     'summary',
     'contact',
@@ -212,7 +233,11 @@ function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
     (draft.webSelections === null || isWebSelections(draft.webSelections)) &&
     (draft.printSelected === undefined ||
       typeof draft.printSelected === 'boolean') &&
-    (draft.printSelections === undefined || isPrintSelections(draft.printSelections))
+    (draft.printSelections === undefined || isPrintSelections(draft.printSelections)) &&
+    (draft.digitalSelected === undefined ||
+      typeof draft.digitalSelected === 'boolean') &&
+    (draft.digitalSelections === undefined ||
+      isDigitalSelections(draft.digitalSelections))
   )
 }
 
@@ -295,6 +320,10 @@ export function QuoteRequestFlow() {
   const [printSelections, setPrintSelections] = useState<PrintSelections>(
     createPrintSelections,
   )
+  const [digitalSelected, setDigitalSelected] = useState(false)
+  const [digitalSelections, setDigitalSelections] = useState<DigitalSelections>(
+    createDigitalSelections,
+  )
   const [timeline, setTimeline] = useState<DesiredTimeline | null>(null)
   const [contactDetails, setContactDetails] = useState<ContactDetails>(
     initialContactDetails,
@@ -311,6 +340,7 @@ export function QuoteRequestFlow() {
 
   const estimate = calculateQuoteEstimate({
     brandingFormula: brandingSelected ? formula : null,
+    digital: digitalSelected ? digitalSelections : null,
     print: printSelected ? printSelections : null,
     timeline: timeline ?? 'normal',
     web: webSelected ? webSelections : null,
@@ -320,6 +350,7 @@ export function QuoteRequestFlow() {
     ...(brandingSelected ? (['branding'] as const) : []),
     ...(webSelected ? (['web'] as const) : []),
     ...(printSelected ? (['print'] as const) : []),
+    ...(digitalSelected ? (['digital'] as const) : []),
     'timeline',
     'summary',
     'contact',
@@ -333,6 +364,7 @@ export function QuoteRequestFlow() {
   const isTimeline = step === 'timeline'
   const isWeb = step === 'web'
   const isPrint = step === 'print'
+  const isDigital = step === 'digital'
   const showCounter = workflowStepIndex >= 0
   const showLiveEstimate =
     estimate.lowCents > 0 && step !== 'intro' && step !== 'summary'
@@ -359,6 +391,10 @@ export function QuoteRequestFlow() {
       setWebSelections(parsedDraft.webSelections)
       setPrintSelected(parsedDraft.printSelected ?? false)
       setPrintSelections(parsedDraft.printSelections ?? createPrintSelections())
+      setDigitalSelected(parsedDraft.digitalSelected ?? false)
+      setDigitalSelections(
+        parsedDraft.digitalSelections ?? createDigitalSelections(),
+      )
     } catch {
       removeQuoteRequestDraft()
     } finally {
@@ -377,6 +413,8 @@ export function QuoteRequestFlow() {
       webSelections !== null ||
       printSelected ||
       Object.values(printSelections).some(Boolean) ||
+      digitalSelected ||
+      Object.values(digitalSelections).some(Boolean) ||
       timeline !== null ||
       Object.values(contactDetails).some(Boolean)
 
@@ -395,6 +433,8 @@ export function QuoteRequestFlow() {
       webSelections,
       printSelected,
       printSelections,
+      digitalSelected,
+      digitalSelections,
     }
 
     try {
@@ -417,6 +457,8 @@ export function QuoteRequestFlow() {
     webSelections,
     printSelected,
     printSelections,
+    digitalSelected,
+    digitalSelections,
   ])
 
   useEffect(() => {
@@ -446,13 +488,15 @@ export function QuoteRequestFlow() {
 
   const canContinue =
     step === 'domains'
-      ? brandingSelected || webSelected || printSelected
+      ? brandingSelected || webSelected || printSelected || digitalSelected
       : step === 'branding'
         ? formula !== null
         : step === 'web'
           ? webSelections !== null
           : step === 'print'
-            ? Object.values(printSelections).some((quantity) => quantity > 0)
+          ? Object.values(printSelections).some((quantity) => quantity > 0)
+          : step === 'digital'
+            ? Object.values(digitalSelections).some(Boolean)
           : step === 'timeline'
             ? timeline !== null
             : true
@@ -518,6 +562,13 @@ export function QuoteRequestFlow() {
     }))
   }
 
+  const toggleDigitalSelection = (support: DigitalSupport) => {
+    setDigitalSelections((current) => ({
+      ...current,
+      [support]: !current[support],
+    }))
+  }
+
   const validateContactDetails = () => {
     const errors: Partial<Record<ContactField, string>> = {}
 
@@ -561,7 +612,7 @@ export function QuoteRequestFlow() {
     if (
       submissionStatus === 'submitting' ||
       !timeline ||
-      (!brandingSelected && !webSelected && !printSelected)
+      (!brandingSelected && !webSelected && !printSelected && !digitalSelected)
     ) {
       return
     }
@@ -583,6 +634,7 @@ export function QuoteRequestFlow() {
           ...(brandingSelected && formula ? { branding: { formula } } : {}),
           ...(webSelected && webSelections ? { web: webSelections } : {}),
           ...(printSelected ? { print: printSelections } : {}),
+          ...(digitalSelected ? { digital: digitalSelections } : {}),
         },
       })
       setSubmissionStatus('sent')
@@ -634,6 +686,8 @@ export function QuoteRequestFlow() {
     setWebSelections(null)
     setPrintSelected(false)
     setPrintSelections(createPrintSelections())
+    setDigitalSelected(false)
+    setDigitalSelections(createDigitalSelections())
     setTimeline(null)
     setContactDetails(initialContactDetails)
     setContactErrors({})
@@ -746,7 +800,7 @@ export function QuoteRequestFlow() {
             </div>
           </div>
         </header>
-      ) : isBranding || isWeb || isPrint ? (
+      ) : isBranding || isWeb || isPrint || isDigital ? (
         <header className="sticky top-0 z-20 border-b border-[#d4e0f5] bg-[#f0f4ff] backdrop-blur-[5px]">
           <div className="mx-auto flex max-w-[67.5rem] flex-col gap-[1.375rem] px-5 pt-[1.375rem] sm:px-8 lg:px-12 xl:px-0">
             <div className="flex items-center justify-between gap-4">
@@ -923,6 +977,7 @@ export function QuoteRequestFlow() {
                 isBranding ||
                 isWeb ||
                 isPrint ||
+                isDigital ||
                 isTimeline ||
                 isSummary ||
                 isContact
@@ -1054,7 +1109,7 @@ export function QuoteRequestFlow() {
               />
               <DomainCard
                 description="Newsletter, posts réseaux sociaux, signature, slides pptx"
-                disabled
+                checked={digitalSelected}
                 icon={
                   <img
                     alt=""
@@ -1065,6 +1120,10 @@ export function QuoteRequestFlow() {
                   />
                 }
                 label="Supports de com. digitaux"
+                onChange={(checked) => {
+                  setDigitalSelected(checked)
+                  if (!checked) setDigitalSelections(createDigitalSelections())
+                }}
               />
             </fieldset>
           </section>
@@ -1439,6 +1498,77 @@ export function QuoteRequestFlow() {
           </section>
         )}
 
+        {step === 'digital' && (
+          <section
+            aria-labelledby="digital-heading"
+            className="mx-auto w-full max-w-[67.5rem] pt-[0.1875rem]"
+          >
+            <div>
+              <p className="text-xs font-semibold tracking-[0.043em] text-[#f0606f] uppercase">
+                Supports de com. digitaux
+              </p>
+              <h1
+                className="mt-0.5 font-heading text-[2.375rem] leading-normal font-bold tracking-[-0.02em]"
+                id="digital-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+              >
+                Quels supports digitaux ?
+              </h1>
+            </div>
+
+            <fieldset className="mt-8 flex flex-col gap-[0.8125rem]">
+              <legend className="sr-only">
+                Supports de communication digitaux
+              </legend>
+              {digitalSupportEntries.map(([support, definition]) => {
+                const selected = digitalSelections[support]
+                return (
+                  <label
+                    className={cn(
+                      'relative flex cursor-pointer items-center gap-4 rounded-[1.125rem] border border-[#c7c7c7] bg-white px-[1.4375rem] py-[1.3125rem] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3',
+                      selected && 'border-[#f0606f]',
+                    )}
+                    key={support}
+                  >
+                    <input
+                      checked={selected}
+                      className="sr-only"
+                      onChange={() => toggleDigitalSelection(support)}
+                      type="checkbox"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-heading text-[1.1875rem] leading-normal font-bold">
+                          {definition.label}
+                        </span>
+                        <span className="font-meta text-xs text-[#a0a3a3]">
+                          {definition.duration}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-meta text-[0.9375rem] font-bold text-[#f0606f]">
+                      {formatEuros(definition.priceCents)}
+                    </span>
+                    {selected && (
+                      <span
+                        aria-hidden="true"
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f0606f] text-sm font-bold text-white"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
+            </fieldset>
+
+            <p className="mt-3 text-right text-sm text-[#1f2a28]/70">
+              Base&nbsp;: 450&nbsp;€ / jour.
+            </p>
+          </section>
+        )}
+
         {step === 'timeline' && (
           <section
             aria-labelledby="timeline-heading"
@@ -1745,6 +1875,7 @@ export function QuoteRequestFlow() {
             isBranding ||
             isWeb ||
             isPrint ||
+            isDigital ||
             isTimeline ||
             isSummary ||
             isContact
@@ -1761,6 +1892,7 @@ export function QuoteRequestFlow() {
                   isBranding ||
                   isWeb ||
                   isPrint ||
+                  isDigital ||
                   isTimeline ||
                   isSummary ||
                   isContact
@@ -1787,6 +1919,7 @@ export function QuoteRequestFlow() {
                   isBranding ||
                   isWeb ||
                   isPrint ||
+                  isDigital ||
                   isTimeline ||
                   isSummary ||
                   isContact) &&

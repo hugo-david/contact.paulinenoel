@@ -54,6 +54,9 @@ export default class QuoteRequestSubmissionService {
   constructor(private notificationService: QuoteRequestNotificationService) {}
 
   async submit(input: SubmitQuoteRequestInput) {
+    const hasDigitalSelection =
+      input.selections.digital !== undefined &&
+      Object.values(input.selections.digital).some(Boolean)
     const hasPrintSelection =
       input.selections.print !== undefined &&
       Object.values(input.selections.print).some((quantity) => quantity > 0)
@@ -61,6 +64,7 @@ export default class QuoteRequestSubmissionService {
     if (
       !input.selections.branding &&
       !input.selections.web &&
+      !hasDigitalSelection &&
       !hasPrintSelection
     ) {
       throw new QuoteRequestEstimateChangedError()
@@ -68,6 +72,7 @@ export default class QuoteRequestSubmissionService {
 
     const estimate = calculateQuoteEstimate({
       brandingFormula: input.selections.branding?.formula ?? null,
+      digital: input.selections.digital ?? null,
       print: input.selections.print ?? null,
       timeline: input.desiredTimeline,
       web: input.selections.web ?? null,
