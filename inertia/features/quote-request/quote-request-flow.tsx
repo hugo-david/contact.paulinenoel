@@ -233,7 +233,8 @@ function isQuoteRequestDraft(value: unknown): value is QuoteRequestDraft {
     (draft.webSelections === null || isWebSelections(draft.webSelections)) &&
     (draft.printSelected === undefined ||
       typeof draft.printSelected === 'boolean') &&
-    (draft.printSelections === undefined || isPrintSelections(draft.printSelections)) &&
+    (draft.printSelections === undefined ||
+      isPrintSelections(draft.printSelections)) &&
     (draft.digitalSelected === undefined ||
       typeof draft.digitalSelected === 'boolean') &&
     (draft.digitalSelections === undefined ||
@@ -494,12 +495,12 @@ export function QuoteRequestFlow() {
         : step === 'web'
           ? webSelections !== null
           : step === 'print'
-          ? Object.values(printSelections).some((quantity) => quantity > 0)
-          : step === 'digital'
-            ? Object.values(digitalSelections).some(Boolean)
-          : step === 'timeline'
-            ? timeline !== null
-            : true
+            ? Object.values(printSelections).some((quantity) => quantity > 0)
+            : step === 'digital'
+              ? Object.values(digitalSelections).some(Boolean)
+              : step === 'timeline'
+                ? timeline !== null
+                : true
 
   const next = () => {
     if (!canContinue) return
@@ -1469,7 +1470,9 @@ export function QuoteRequestFlow() {
                         aria-label={`Retirer un exemplaire de ${definition.label}`}
                         className="flex size-[1.5835rem] items-center justify-center rounded-full bg-white text-[1.0625rem] text-[#1f2a28] disabled:opacity-40"
                         disabled={quantity === 0}
-                        onClick={() => updatePrintQuantity(support, quantity - 1)}
+                        onClick={() =>
+                          updatePrintQuantity(support, quantity - 1)
+                        }
                         type="button"
                       >
                         −
@@ -1481,7 +1484,9 @@ export function QuoteRequestFlow() {
                         aria-label={`Ajouter un exemplaire de ${definition.label}`}
                         className="flex size-[1.5835rem] items-center justify-center rounded-full bg-[#1f2a28] text-[1.0625rem] text-white disabled:opacity-40"
                         disabled={quantity === 20}
-                        onClick={() => updatePrintQuantity(support, quantity + 1)}
+                        onClick={() =>
+                          updatePrintQuantity(support, quantity + 1)
+                        }
                         type="button"
                       >
                         +

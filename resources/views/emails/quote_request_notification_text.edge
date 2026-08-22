@@ -12,12 +12,18 @@ Projet
 
 Délai : {{ quoteRequest.desiredTimeline }}
 
-Sélection enregistrée
-Identité & branding : {{ quoteRequest.selections.branding.formula }}
+Prestations sélectionnées
+@each(section in selectionSections)
 
-Estimation enregistrée
-@each(line in quoteRequest.estimateLines)
-- {{ line.label }} — {{ line.detail }} : {{ Math.round(line.amountCents / 100).toLocaleString('fr-FR') }} €
+{{ section.title }}
+@each(row in section.rows)
+- {{ row.label }} : {{ row.value }}
+@endeach
 @endeach
 
-Total : {{ Math.round(quoteRequest.estimateLowCents / 100).toLocaleString('fr-FR') }} €@if(quoteRequest.estimateHighCents !== quoteRequest.estimateLowCents) à {{ Math.round(quoteRequest.estimateHighCents / 100).toLocaleString('fr-FR') }} €@endif
+Estimation enregistrée
+@each(line in estimateLines)
+- {{ line.label }} — {{ line.detail }} : {{ line.amount }}
+@endeach
+
+Total indicatif : {{ quoteRequest.estimateHighCents !== quoteRequest.estimateLowCents ? total + ' à ' + maximumTotal : total }}
