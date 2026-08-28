@@ -19,7 +19,7 @@ importers:
         version: 3.0.0(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@adonisjs/core@7.4.0(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.1.3)(youch@4.1.1))
       '@adonisjs/inertia':
         specifier: ^5.0.0
-        version: 5.0.0(b5450d19db47ef74f746ebbc3d1f278f)
+        version: 5.0.0(8287961585dc426efec5d37cf1a61635)
       '@adonisjs/lucid':
         specifier: ^22.4.2
         version: 22.4.2(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@adonisjs/core@7.4.0(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.1.3)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.3)(luxon@3.7.2)(pg@8.23.0)
@@ -45,8 +45,8 @@ importers:
         specifier: ^3.6.1
         version: 3.6.1(axios@1.19.0)
       '@inertiajs/react':
-        specifier: ^3.6.1
-        version: 3.6.1(axios@1.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: ^3.7.0
+        version: 3.7.0(axios@1.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tuyau/core':
         specifier: ^1.2.2
         version: 1.2.2(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@adonisjs/core@7.4.0(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.1.3)(youch@4.1.1))
@@ -933,8 +933,16 @@ packages:
       axios:
         optional: true
 
-  '@inertiajs/react@3.6.1':
-    resolution: {integrity: sha512-z5TJIj80TmLqhJE6FD6RwfmbcYPFuMT63orrXayLW084yYAKLye4i9aeeCt6+mDxC1hMMP16Uf68ePiLtl0saA==}
+  '@inertiajs/core@3.7.0':
+    resolution: {integrity: sha512-JzysXTPsOpKcnR7ohwpgKE+UWBrKwW7z23DydWHSxjfQ02tJAKmNnZJAxnX7zH3zUSTqbtPge6QC8XhvfjNXmw==}
+    peerDependencies:
+      axios: ^1.15.2
+    peerDependenciesMeta:
+      axios:
+        optional: true
+
+  '@inertiajs/react@3.7.0':
+    resolution: {integrity: sha512-rc/TsVT7ihDk+cMeCuU3BjdUfTq6HJwXqGy7oPaysLQCeyfhIaP2QgExo5R1QSCFIwl9un0MeZnzTOG+i38jLw==}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
@@ -2317,6 +2325,9 @@ packages:
 
   es-toolkit@1.50.0:
     resolution: {integrity: sha512-OyZKhUVvEep9ITEiwHn8GKnMRQIVqoSIX7WnRbkWgJkllCujilqP2rD0u979tkl8wqyc8ICwlc1UBVv/Sl1G6w==}
+
+  es-toolkit@1.51.0:
+    resolution: {integrity: sha512-zC2lQGkM7QX+Gm6iM3+WIdZJzthsEd14LvRNJneSO2hzyz/zNBENR8+YXWo1cKxgPBtV6ksPYHELbcwBRzmdCw==}
 
   esbuild@0.28.2:
     resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
@@ -4074,7 +4085,7 @@ snapshots:
       '@poppinss/exception': 1.2.3
       '@poppinss/types': 1.2.1
 
-  '@adonisjs/inertia@5.0.0(b5450d19db47ef74f746ebbc3d1f278f)':
+  '@adonisjs/inertia@5.0.0(8287961585dc426efec5d37cf1a61635)':
     dependencies:
       '@adonisjs/core': 7.4.0(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.1.3)(youch@4.1.1)
       '@adonisjs/session': 8.1.0(a912674fa0bce7f787791a48b08a6207)
@@ -4087,7 +4098,7 @@ snapshots:
     optionalDependencies:
       '@adonisjs/assembler': 8.4.0(typescript@6.0.3)
       '@inertiajs/core': 3.6.1(axios@1.19.0)
-      '@inertiajs/react': 3.6.1(axios@1.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@inertiajs/react': 3.7.0(axios@1.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@japa/api-client': 3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)
       '@japa/plugin-adonisjs': 5.2.0(@adonisjs/core@7.4.0(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.1.3)(youch@4.1.1))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0))(@japa/browser-client@2.3.0(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)(playwright@1.62.1))(@japa/runner@5.3.0)(playwright@1.62.1)
       '@tuyau/core': 1.2.2(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@adonisjs/core@7.4.0(@adonisjs/assembler@8.4.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(edge.js@6.5.1)(pino-pretty@13.1.3)(youch@4.1.1))
@@ -4569,10 +4580,18 @@ snapshots:
     optionalDependencies:
       axios: 1.19.0
 
-  '@inertiajs/react@3.6.1(axios@1.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@inertiajs/core@3.7.0(axios@1.19.0)':
     dependencies:
-      '@inertiajs/core': 3.6.1(axios@1.19.0)
-      es-toolkit: 1.50.0
+      '@jridgewell/trace-mapping': 0.3.31
+      es-toolkit: 1.51.0
+      laravel-precognition: 2.0.0(axios@1.19.0)
+    optionalDependencies:
+      axios: 1.19.0
+
+  '@inertiajs/react@3.7.0(axios@1.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@inertiajs/core': 3.7.0(axios@1.19.0)
+      es-toolkit: 1.51.0
       laravel-precognition: 2.0.0(axios@1.19.0)
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
@@ -5716,6 +5735,8 @@ snapshots:
 
   es-toolkit@1.50.0: {}
 
+  es-toolkit@1.51.0: {}
+
   esbuild@0.28.2:
     optionalDependencies:
       '@esbuild/aix-ppc64': 0.28.2
@@ -6119,7 +6140,7 @@ snapshots:
 
   laravel-precognition@2.0.0(axios@1.19.0):
     dependencies:
-      es-toolkit: 1.50.0
+      es-toolkit: 1.51.0
     optionalDependencies:
       axios: 1.19.0
 
