@@ -91,7 +91,7 @@
     "react-dom": "^19.2.8",
     "reflect-metadata": "^0.2.2",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.7.0"
   },
   "hotHook": {
     "boundaries": [
