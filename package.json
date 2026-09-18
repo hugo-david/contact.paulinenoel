@@ -42,7 +42,7 @@
   "devDependencies": {
     "@adonisjs/assembler": "^8.4.0",
     "@adonisjs/tsconfig": "^2.0.0",
-    "@biomejs/biome": "^2.5.8",
+    "@biomejs/biome": "^2.5.13",
     "@japa/api-client": "^3.2.1",
     "@japa/assert": "^4.2.0",
     "@japa/browser-client": "^2.3.0",
