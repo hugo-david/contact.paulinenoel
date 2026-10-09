@@ -78,7 +78,7 @@
     "@adonisjs/vite": "^6.0.0",
     "@base-ui/react": "^1.7.0",
     "@inertiajs/core": "^3.6.1",
-    "@inertiajs/react": "^3.6.1",
+    "@inertiajs/react": "^3.8.0",
     "@tuyau/core": "^1.2.2",
     "@vinejs/vine": "^4.4.0",
     "axios": "^1.19.0",
