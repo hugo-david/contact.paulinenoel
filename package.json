@@ -79,7 +79,7 @@
     "@base-ui/react": "^1.7.0",
     "@inertiajs/core": "^3.6.1",
     "@inertiajs/react": "^3.6.1",
-    "@tuyau/core": "^1.2.2",
+    "@tuyau/core": "^1.2.3",
     "@vinejs/vine": "^4.4.0",
     "axios": "^1.19.0",
     "better-sqlite3": "^13.0.3",
